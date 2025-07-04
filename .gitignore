@@ -1,0 +1,32 @@
+# Python build and cache
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+*.egg-info/
+
+# Environment and IDE
+.env
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+.python-version
+
+# Testing
+.tox/
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Project specific
+output/
+cache/*.json
+*.log
+
+# Keep these files
+!.gitignore
+!.github/
+!requirements*.txt 
