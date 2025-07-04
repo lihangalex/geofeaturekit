@@ -69,8 +69,8 @@ Examples:
     parser.add_argument(
         '--radius',
         type=float,
-        default=300,  # Updated to match DEFAULT_RADIUS_METERS
-        help='Analysis radius in meters (default: 300)'
+        default=100,  # Updated to match DEFAULT_RADIUS_METERS
+        help='Analysis radius in meters (default: 100)'
     )
     parser.add_argument(
         '--save-dir',

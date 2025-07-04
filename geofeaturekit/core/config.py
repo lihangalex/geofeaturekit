@@ -90,7 +90,7 @@ DEFAULT_OUTPUT_DIR = os.path.join(os.getcwd(), 'output')
 DEFAULT_CACHE_DIR = os.path.join(os.getcwd(), 'cache')
 
 # Default analysis settings
-DEFAULT_RADIUS_METERS = 300  # Default radius for all analyses
+DEFAULT_RADIUS_METERS = 100  # Default radius for all analyses
 DEFAULT_CRS = 'EPSG:4326'  # WGS84
 
 # Feature computation settings
