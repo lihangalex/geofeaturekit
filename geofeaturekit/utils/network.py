@@ -27,6 +27,63 @@ from ..utils.progress import create_progress_bar, log_analysis_start, log_analys
 warnings.filterwarnings('ignore', category=FutureWarning, 
                        message='.*great_circle_vec.*')
 
+def calculate_basic_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
+    """Calculate basic network metrics.
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Dictionary containing basic network metrics
+    """
+    # Calculate total street length
+    total_length = sum(d['length'] for _, _, d in G.edges(data=True))
+    
+    # Calculate intersection density
+    intersections = len([n for n, d in G.degree() if d > 2])
+    bounds = ox.utils_geo.bbox_from_point(
+        (G.graph['center_lat'], G.graph['center_lon']),
+        dist=G.graph['dist']
+    )
+    area_sqkm = ((bounds[2] - bounds[0]) * (bounds[3] - bounds[1]) * 111) ** 2
+    intersection_density = intersections / area_sqkm if area_sqkm > 0 else 0
+    
+    # Calculate road type distribution
+    road_types = {}
+    for _, _, data in G.edges(data=True):
+        road_type = process_road_type(data.get('highway'))
+        length = float(data.get('length', 0))
+        road_types[road_type] = road_types.get(road_type, 0) + length
+    
+    # Convert to percentages
+    if total_length > 0:
+        road_distribution = {k: float(v/total_length) for k, v in road_types.items()}
+    else:
+        road_distribution = {}
+    
+    # Calculate connectivity
+    G_undirected = G.to_undirected()
+    avg_degree = float(np.mean([d for _, d in G_undirected.degree()]))
+    components = list(nx.connected_components(G_undirected))
+    connectivity = {
+        "avg_degree": avg_degree,
+        "num_components": len(components),
+        "largest_component_size": len(max(components, key=len))
+    }
+    
+    return {
+        "street_lengths": {
+            "total_length": total_length,
+            "avg_segment_length": total_length / G.number_of_edges() if G.number_of_edges() > 0 else 0
+        },
+        "intersection_density": {
+            "intersections": intersections,
+            "density": intersection_density
+        },
+        "road_types": road_distribution,
+        "connectivity": connectivity
+    }
+
 def process_road_type(road_type) -> str:
     """Process road type value, handling both scalar and array inputs.
     
@@ -57,335 +114,139 @@ def process_road_type(road_type) -> str:
 def get_network_stats(
     latitude: float, 
     longitude: float, 
-    radius_meters: int,
-    feature_sets: Optional[Set[str]] = None,
-    compute_embeddings: bool = False,
-    embedding_config: Optional[Dict] = None,
-    shared_embeddings: Optional[Dict[str, List[float]]] = None,
-    location_key: Optional[str] = None
+    radius_meters: int
 ) -> Dict[str, Any]:
-    """Get street network statistics for a location.
+    """Get street network statistics using absolute metrics.
     
     Args:
         latitude: Location latitude
         longitude: Location longitude
         radius_meters: Analysis radius in meters
-        feature_sets: Set of feature types to compute
-            Options: ['basic', 'urban', 'spectral']
-            If None, defaults to ['basic']
-        compute_embeddings: Whether to compute contextual embeddings
-        embedding_config: Configuration for embedding computation
-            - dimensions: Number of dimensions
-            - reduce_dims: Optional dimensionality reduction
-            - num_walks: Number of random walks
-            - walk_length: Length of random walks
-        shared_embeddings: Optional pre-computed embeddings for shared graph
-        location_key: Optional key to look up embeddings in shared_embeddings
         
     Returns:
-        Dictionary containing requested feature sets
+        Dictionary containing:
+        - area_metrics: Size and basic area information
+        - street_metrics: Street lengths and counts
+        - network_metrics: Graph topology measures
+        - geometric_metrics: Physical layout measurements
     """
-    # Default to basic features
-    feature_sets = feature_sets or {'basic'}
-    
     # Create point and get network
     point = (latitude, longitude)
     G = ox.graph_from_point(point, dist=radius_meters, network_type='all')
     
-    # Add center point and radius to graph metadata for area calculations
-    G.graph['center_lat'] = latitude
-    G.graph['center_lon'] = longitude
-    G.graph['dist'] = radius_meters
-    
-    # Convert to undirected graph for analysis
+    # Convert to undirected for analysis
     G_undirected = G.to_undirected()
     
-    # Initialize results
-    results = {}
+    # Calculate area in square kilometers
+    area_sqkm = np.pi * (radius_meters / 1000) ** 2
     
-    # Basic features (always computed)
-    if 'basic' in feature_sets:
-        total_length = sum(d['length'] for u, v, d in G.edges(data=True))
-        intersections = len([node for node, degree in G_undirected.degree() if degree > 2])
-        street_segments = G.number_of_edges()
-        
-        results['basic'] = {
-            'total_length': total_length,
-            'intersections': intersections,
-            'segments': street_segments,
-            'centrality': compute_basic_centrality(G),
-            'road_distribution': compute_road_distribution(G),
-            'density': compute_density_metrics(G)
-        }
+    # Basic area metrics
+    area_metrics = {
+        "area_size_sq_km": area_sqkm,
+        "center_point": {
+            "latitude": float(latitude),
+            "longitude": float(longitude)
+        },
+        "radius_meters": radius_meters
+    }
     
-    # Urban features
-    if 'urban' in feature_sets:
-        results['urban'] = {
-            'space_syntax': compute_space_syntax_metrics(G),
-            'orientation': compute_orientation_entropy(G),
-            'morphology': compute_morphological_metrics(G),
-            'hierarchy': compute_hierarchical_metrics(G)
-        }
+    # Street metrics
+    total_length = sum(float(d.get('length', 0)) for _, _, d in G.edges(data=True))
+    intersections = len([n for n, d in G_undirected.degree() if d > 2])
+    dead_ends = len([n for n, d in G_undirected.degree() if d == 1])
     
-    # Spectral features
-    if 'spectral' in feature_sets:
-        results['spectral'] = {
-            'features': compute_spectral_features(G)
-        }
+    street_metrics = {
+        "total_street_length_meters": total_length,
+        "intersections_count": intersections,
+        "intersections_per_sq_km": intersections / area_sqkm if area_sqkm > 0 else 0,
+        "dead_ends_count": dead_ends,
+        "street_segments_count": G.number_of_edges(),
+        "street_length_by_type_meters": _calculate_street_lengths_by_type(G)
+    }
     
-    # Contextual embeddings (if requested)
-    if compute_embeddings:
-        if shared_embeddings and location_key:
-            # Use pre-computed embeddings
-            results['embeddings'] = shared_embeddings[location_key]
-        elif embedding_config is None:
-            embedding_config = {
-                'dimensions': 128,
-                'reduce_dims': None,
-                'num_walks': 200,
-                'walk_length': 30
-            }
-            results['embeddings'] = compute_contextual_embeddings(
-                G,
-                dimensions=embedding_config['dimensions'],
-                reduce_dims=embedding_config['reduce_dims'],
-                num_walks=embedding_config['num_walks'],
-                walk_length=embedding_config['walk_length']
-            )
+    # Network metrics
+    network_metrics = {
+        "average_node_degree": float(np.mean([d for _, d in G_undirected.degree()])),
+        "total_node_count": G.number_of_nodes(),
+        "total_edge_count": G.number_of_edges(),
+        "connected_components_count": nx.number_connected_components(G_undirected),
+        "largest_component_node_count": len(max(nx.connected_components(G_undirected), key=len))
+    }
     
-    return results
-
-def compute_basic_centrality(G: nx.MultiDiGraph) -> Dict[str, float]:
-    """Compute basic centrality measures."""
-    G_undirected = G.to_undirected()
-    
-    # Sample nodes if network is large
-    if len(G) > 1000:
-        sampled_nodes = np.random.choice(list(G.nodes()), 1000, replace=False)
-        G_sample = G.subgraph(sampled_nodes)
-        G_undirected_sample = G_undirected.subgraph(sampled_nodes)
-    else:
-        G_sample = G
-        G_undirected_sample = G_undirected
-    
-    # Calculate centrality measures
-    betweenness = nx.betweenness_centrality(G_sample)
-    closeness = nx.closeness_centrality(G_undirected_sample)
-    degree = dict(G.degree())
+    # Geometric metrics
+    geometric_metrics = {
+        "street_angles_distribution_degrees": _calculate_angle_distribution(G),
+        "average_segment_length_meters": total_length / G.number_of_edges() if G.number_of_edges() > 0 else 0,
+        "block_sizes_meters": _calculate_block_sizes(G)
+    }
     
     return {
-        "avg_betweenness": float(np.mean(list(betweenness.values()))),
-        "avg_closeness": float(np.mean(list(closeness.values()))),
-        "avg_degree": float(np.mean(list(degree.values())))
+        "area_metrics": area_metrics,
+        "street_metrics": street_metrics,
+        "network_metrics": network_metrics,
+        "geometric_metrics": geometric_metrics
     }
 
-def compute_road_distribution(G: nx.MultiDiGraph) -> Dict[str, float]:
-    """Compute distribution of road types."""
-    road_types = {}
-    total_length = 0
-    
+def _calculate_street_lengths_by_type(G: nx.MultiDiGraph) -> Dict[str, float]:
+    """Calculate total street length by type in meters."""
+    lengths = {}
     for _, _, data in G.edges(data=True):
-        road_type = process_road_type(data.get('highway'))
+        road_type = str(data.get('highway', 'unknown'))  # Convert to string to ensure hashable
         length = float(data.get('length', 0))
-        total_length += length
-        
-        road_types[road_type] = road_types.get(road_type, 0) + length
-    
-    # Convert to percentages
-    if total_length > 0:
-        distribution = {k: float(v/total_length) for k, v in road_types.items()}
-    else:
-        distribution = {}
-    
-    return distribution
+        lengths[road_type] = lengths.get(road_type, 0) + length
+    return lengths
 
-def compute_density_metrics(G: nx.MultiDiGraph) -> Dict[str, float]:
-    """Compute network density metrics."""
-    # Calculate area (approximate)
-    bounds = ox.utils_geo.bbox_from_point(
-        (G.graph['center_lat'], G.graph['center_lon']),
-        dist=G.graph['dist']
-    )
-    area_sqkm = ((bounds[2] - bounds[0]) * (bounds[3] - bounds[1]) * 111) ** 2
+def _calculate_angle_distribution(G: nx.MultiDiGraph) -> Dict[str, int]:
+    """Calculate distribution of street angles in 30-degree bins."""
+    angles = []
+    for _, _, data in G.edges(data=True):
+        if 'bearing' in data:
+            angle = float(data['bearing']) % 180
+            angles.append(angle)
     
-    # Calculate metrics
-    total_length = sum(d['length'] for _, _, d in G.edges(data=True))
-    intersections = len([n for n, d in G.degree() if d > 2])
+    bins = {
+        "0-30": 0,
+        "31-60": 0,
+        "61-90": 0,
+        "91-120": 0,
+        "121-150": 0,
+        "151-180": 0
+    }
+    
+    for angle in angles:
+        if angle <= 30:
+            bins["0-30"] += 1
+        elif angle <= 60:
+            bins["31-60"] += 1
+        elif angle <= 90:
+            bins["61-90"] += 1
+        elif angle <= 120:
+            bins["91-120"] += 1
+        elif angle <= 150:
+            bins["121-150"] += 1
+        else:
+            bins["151-180"] += 1
+    
+    return bins
+
+def _calculate_block_sizes(G: nx.MultiDiGraph) -> Dict[str, float]:
+    """Calculate block size statistics in meters."""
+    block_lengths = [float(d.get('length', 0)) for _, _, d in G.edges(data=True) if 'length' in d]
+    
+    if not block_lengths:
+        return {
+            "min_length": 0,
+            "max_length": 0,
+            "mean_length": 0,
+            "median_length": 0
+        }
     
     return {
-        "network_density": float(total_length / area_sqkm) if area_sqkm > 0 else 0,
-        "intersection_density": float(intersections / area_sqkm) if area_sqkm > 0 else 0
+        "min_length": float(min(block_lengths)),
+        "max_length": float(max(block_lengths)),
+        "mean_length": float(np.mean(block_lengths)),
+        "median_length": float(np.median(block_lengths))
     }
-
-def compute_contextual_embeddings(
-    G: nx.MultiDiGraph,
-    dimensions: int = 128,
-    reduce_dims: Optional[int] = None,
-    num_walks: int = 200,
-    walk_length: int = 30
-) -> List[float]:
-    """Compute Node2Vec embeddings for the network.
-    
-    Args:
-        G: NetworkX graph
-        dimensions: Number of dimensions for embeddings
-        reduce_dims: If set, reduce embeddings to this many dimensions
-        num_walks: Number of random walks per node
-        walk_length: Length of each random walk
-        
-    Returns:
-        List of embedding values (averaged across nodes)
-    """
-    # Convert to undirected for Node2Vec
-    G_undirected = G.to_undirected()
-    
-    # Initialize Node2Vec
-    node2vec = Node2Vec(
-        G_undirected,
-        dimensions=dimensions,
-        walk_length=walk_length,
-        num_walks=num_walks,
-        workers=1  # Single worker for consistency
-    )
-    
-    # Train the model
-    model = node2vec.fit(window=10, min_count=1)
-    
-    # Get embeddings for all nodes
-    node_embeddings = []
-    for node in G_undirected.nodes():
-        try:
-            node_embeddings.append(model.wv[str(node)])
-        except KeyError:
-            continue
-    
-    # Return average embedding across all nodes
-    if node_embeddings:
-        # Stack embeddings into a matrix for reduction
-        embeddings_matrix = np.stack(node_embeddings)
-        
-        # Reduce dimensionality if requested
-        if reduce_dims is not None and reduce_dims < dimensions:
-            # First reduce individual node embeddings
-            pca = PCA(n_components=min(reduce_dims, embeddings_matrix.shape[0]))
-            reduced_embeddings = pca.fit_transform(embeddings_matrix)
-            
-            # Then average the reduced embeddings
-            avg_embedding = np.mean(reduced_embeddings, axis=0)
-            
-            # Pad with zeros if needed
-            if len(avg_embedding) < reduce_dims:
-                avg_embedding = np.pad(avg_embedding, (0, reduce_dims - len(avg_embedding)))
-            
-            return avg_embedding.tolist()
-        
-        # If no reduction needed, just average the original embeddings
-        avg_embedding = np.mean(embeddings_matrix, axis=0)
-        return avg_embedding.tolist()
-    
-    # Return zero vector of appropriate size if no embeddings
-    return [0.0] * (reduce_dims if reduce_dims is not None else dimensions)
-
-def compute_contextual_embeddings_batch(
-    locations: List[Dict[str, float]],
-    radius_meters: int,
-    dimensions: int = 128,
-    reduce_dims: Optional[int] = None,
-    num_walks: int = 200,
-    walk_length: int = 30
-) -> Dict[str, List[float]]:
-    """Compute contextual embeddings for multiple locations using a shared graph.
-    
-    Args:
-        locations: List of location dictionaries with 'latitude' and 'longitude'
-        radius_meters: Analysis radius in meters
-        dimensions: Number of dimensions for embeddings
-        reduce_dims: If set, reduce embeddings to this many dimensions
-        num_walks: Number of random walks per node
-        walk_length: Length of each random walk
-        
-    Returns:
-        Dictionary mapping location strings to their embeddings
-    """
-    # Create a combined graph
-    G_combined = nx.MultiDiGraph()
-    location_nodes = {}
-    
-    log_analysis_start(len(locations))
-    
-    # Build combined graph
-    for loc in create_progress_bar(locations, desc="Building combined graph"):
-        lat, lon = loc['latitude'], loc['longitude']
-        point = (lat, lon)
-        G = ox.graph_from_point(point, dist=radius_meters, network_type='all')
-        
-        # Add center node to track location
-        center_node = f"{lat},{lon}"  # Use string format
-        G_combined.add_node(center_node, pos=(lat, lon))
-        location_nodes[center_node] = G.nodes()
-        
-        # Add all nodes and edges from this location's graph
-        G_combined.add_nodes_from(G.nodes(data=True))
-        G_combined.add_edges_from(G.edges(data=True))
-    
-    # Convert to undirected for Node2Vec
-    G_undirected = G_combined.to_undirected()
-    
-    # Initialize Node2Vec
-    node2vec = Node2Vec(
-        G_undirected,
-        dimensions=dimensions,
-        walk_length=walk_length,
-        num_walks=num_walks,
-        workers=1  # Single worker for consistency
-    )
-    
-    # Train the model
-    print("Computing embeddings...")
-    model = node2vec.fit(window=10, min_count=1)
-    
-    # Get embeddings for each location's subgraph
-    embeddings = {}
-    for loc in create_progress_bar(locations, desc="Extracting location embeddings"):
-        lat, lon = loc['latitude'], loc['longitude']
-        center_node = f"{lat},{lon}"  # Use string format
-        
-        # Get embeddings for nodes in this location's subgraph
-        node_embeddings = []
-        for node in location_nodes[center_node]:
-            try:
-                node_embeddings.append(model.wv[str(node)])
-            except KeyError:
-                continue
-        
-        # Stack embeddings into a matrix for reduction
-        if node_embeddings:
-            embeddings_matrix = np.stack(node_embeddings)
-            
-            # Reduce dimensionality if requested
-            if reduce_dims is not None and reduce_dims < dimensions:
-                # First reduce individual node embeddings
-                pca = PCA(n_components=min(reduce_dims, embeddings_matrix.shape[0]))
-                reduced_embeddings = pca.fit_transform(embeddings_matrix)
-                
-                # Then average the reduced embeddings
-                avg_embedding = np.mean(reduced_embeddings, axis=0)
-                
-                # Pad with zeros if needed
-                if len(avg_embedding) < reduce_dims:
-                    avg_embedding = np.pad(avg_embedding, (0, reduce_dims - len(avg_embedding)))
-                
-                embeddings[center_node] = avg_embedding.tolist()
-            else:
-                # If no reduction needed, just average the original embeddings
-                avg_embedding = np.mean(embeddings_matrix, axis=0)
-                embeddings[center_node] = avg_embedding.tolist()
-        else:
-            # Return zero vector if no embeddings
-            embeddings[center_node] = [0.0] * (reduce_dims if reduce_dims is not None else dimensions)
-    
-    log_analysis_complete(len(locations), len(embeddings))
-    return embeddings 
 
 def calculate_network_length(G: nx.MultiDiGraph) -> float:
     """Calculate total length of the street network in meters.
@@ -458,4 +319,44 @@ def calculate_network_density(G: nx.MultiDiGraph) -> float:
     # Calculate total network length
     total_length = calculate_network_length(G)
     
-    return float(total_length / area_sqkm if area_sqkm > 0 else 0) 
+    return float(total_length / area_sqkm if area_sqkm > 0 else 0)
+
+def calculate_network_features(G, feature_sets=None):
+    """
+    Calculate network features for the given graph.
+    
+    Args:
+        G: NetworkX graph object
+        feature_sets: List of feature sets to compute. 
+        Options: ['basic', 'pattern', 'spectral']
+    
+    Returns:
+        Dictionary of computed features
+    """
+    if feature_sets is None:
+        feature_sets = ['basic']
+    
+    results = {}
+    
+    # Basic features
+    if 'basic' in feature_sets:
+        results['basic'] = {
+            'total_length': calculate_network_length(G),
+            'intersection_density': calculate_intersection_density(G),
+            'road_type_distribution': analyze_road_types(G),
+            'connectivity': calculate_connectivity(G)
+        }
+    
+    # Pattern features (formerly urban)
+    if 'pattern' in feature_sets:
+        results['pattern'] = {
+            'grid_pattern_score': calculate_grid_pattern(G),
+            'block_sizes': analyze_block_sizes(G),
+            'street_orientation': analyze_street_orientation(G)
+        }
+    
+    # Spectral features
+    if 'spectral' in feature_sets:
+        results['spectral'] = calculate_spectral_features(G)
+    
+    return results 

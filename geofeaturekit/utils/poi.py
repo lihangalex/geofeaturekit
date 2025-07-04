@@ -201,4 +201,77 @@ def process_pois(pois: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "counts": {category: data["count"] for category, data in pois.items()},
         "details": {category: data["items"] for category, data in pois.items()}
+    }
+
+def analyze_pois(
+    latitude: float,
+    longitude: float,
+    radius_meters: int
+) -> Dict[str, Any]:
+    """Analyze points of interest around a location using absolute metrics.
+    
+    Args:
+        latitude: Location latitude
+        longitude: Location longitude
+        radius_meters: Search radius in meters
+        
+    Returns:
+        Dictionary containing:
+        - area_metrics: Analysis area information
+        - poi_metrics: Raw POI counts and statistics
+        - category_metrics: Detailed category information
+    """
+    # Get POIs using the correct OSMnx function
+    tags = {'amenity': True}
+    pois = ox.features_from_point(
+        (latitude, longitude),
+        tags=tags,
+        dist=radius_meters
+    )
+    
+    # Calculate area in square kilometers
+    area_sqkm = np.pi * (radius_meters / 1000) ** 2
+    
+    # Area metrics
+    area_metrics = {
+        "area_size_sq_km": area_sqkm,
+        "radius_meters": radius_meters
+    }
+    
+    if pois.empty:
+        return {
+            "area_metrics": area_metrics,
+            "poi_metrics": {
+                "total_count": 0,
+                "pois_per_sq_km": 0,
+                "unique_categories": 0
+            },
+            "category_metrics": {}
+        }
+    
+    # Count POIs by category
+    category_counts = {}
+    for _, row in pois.iterrows():
+        category = row.get('amenity', 'other')
+        category_counts[category] = category_counts.get(category, 0) + 1
+    
+    # Calculate basic metrics
+    total_pois = sum(category_counts.values())
+    
+    poi_metrics = {
+        "total_count": total_pois,
+        "pois_per_sq_km": total_pois / area_sqkm if area_sqkm > 0 else 0,
+        "unique_categories": len(category_counts)
+    }
+    
+    # Detailed category metrics
+    category_metrics = {
+        "counts_by_type": category_counts,
+        "categories_list": list(category_counts.keys())
+    }
+    
+    return {
+        "area_metrics": area_metrics,
+        "poi_metrics": poi_metrics,
+        "category_metrics": category_metrics
     } 
