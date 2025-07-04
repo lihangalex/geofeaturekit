@@ -111,6 +111,22 @@ def process_road_type(road_type) -> str:
         print(f"  Warning: Error processing road type: {str(e)}")
         return "unknown"
 
+def _classify_nodes(G: nx.MultiDiGraph) -> Tuple[int, int, int]:
+    """Classify nodes into intersections, dead ends, and other nodes."""
+    intersections = 0  # Nodes where 3+ streets meet
+    dead_ends = 0     # Nodes with only 1 connection
+    other_nodes = 0   # Nodes with exactly 2 connections (usually just bends in the road)
+    
+    for _, degree in G.degree():
+        if degree > 2:
+            intersections += 1
+        elif degree == 1:
+            dead_ends += 1
+        else:  # degree == 2
+            other_nodes += 1
+            
+    return intersections, dead_ends, other_nodes
+
 def get_network_stats(
     latitude: float, 
     longitude: float, 
@@ -150,27 +166,33 @@ def get_network_stats(
         "radius_meters": radius_meters
     }
     
+    # Classify nodes
+    intersections, dead_ends, other_nodes = _classify_nodes(G_undirected)
+    
     # Street metrics
     total_length = sum(float(d.get('length', 0)) for _, _, d in G.edges(data=True))
-    intersections = len([n for n, d in G_undirected.degree() if d > 2])
-    dead_ends = len([n for n, d in G_undirected.degree() if d == 1])
     
     street_metrics = {
         "total_street_length_meters": total_length,
-        "intersections_count": intersections,
+        "node_types": {
+            "intersections": intersections,
+            "dead_ends": dead_ends,
+            "other_nodes": other_nodes  # Usually bends in roads
+        },
         "intersections_per_sq_km": intersections / area_sqkm if area_sqkm > 0 else 0,
-        "dead_ends_count": dead_ends,
         "street_segments_count": G.number_of_edges(),
         "street_length_by_type_meters": _calculate_street_lengths_by_type(G)
     }
     
     # Network metrics
     network_metrics = {
-        "average_node_degree": float(np.mean([d for _, d in G_undirected.degree()])),
-        "total_node_count": G.number_of_nodes(),
-        "total_edge_count": G.number_of_edges(),
-        "connected_components_count": nx.number_connected_components(G_undirected),
-        "largest_component_node_count": len(max(nx.connected_components(G_undirected), key=len))
+        "average_connections_per_intersection": float(np.mean([d for _, d in G_undirected.degree() if d > 2])) if intersections > 0 else 0,
+        "street_network_stats": {
+            "total_nodes": G.number_of_nodes(),
+            "total_street_segments": G.number_of_edges(),
+            "connected_components": nx.number_connected_components(G_undirected),
+            "largest_component_nodes": len(max(nx.connected_components(G_undirected), key=len))
+        }
     }
     
     # Geometric metrics

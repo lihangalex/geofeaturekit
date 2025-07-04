@@ -40,32 +40,41 @@ def main():
         print(f"- Size: {area['area_size_sq_km']:.2f} km²")
         print(f"- Radius: {area['radius_meters']} meters")
         
-        # Street metrics
+        # Street network structure
         streets = result['network_stats']['street_metrics']
-        print(f"\nStreet Network:")
+        nodes = streets['node_types']
+        print(f"\nStreet Network Structure:")
         print(f"- Total street length: {streets['total_street_length_meters']:.0f} meters")
-        print(f"- Intersections: {streets['intersections_count']} ({streets['intersections_per_sq_km']:.1f} per km²)")
-        print(f"- Dead ends: {streets['dead_ends_count']}")
+        print(f"- Intersections: {nodes['intersections']} ({streets['intersections_per_sq_km']:.1f} per km²)")
+        print(f"- Dead ends: {nodes['dead_ends']}")
+        print(f"- Other nodes (bends): {nodes['other_nodes']}")
         
-        # Network metrics
+        # Network characteristics
         network = result['network_stats']['network_metrics']
         print(f"\nNetwork Characteristics:")
-        print(f"- Average connections per intersection: {network['average_node_degree']:.1f}")
-        print(f"- Total intersections: {network['total_node_count']}")
-        print(f"- Street segments: {network['total_edge_count']}")
+        print(f"- Average connections per intersection: {network['average_connections_per_intersection']:.1f}")
         
-        # POI metrics
-        pois = result['points_of_interest']['poi_metrics']
+        net_stats = network['street_network_stats']
+        print(f"- Total street segments: {net_stats['total_street_segments']}")
+        if net_stats['connected_components'] > 1:
+            print(f"- Network is split into {net_stats['connected_components']} separate parts")
+        
+        # POI analysis
+        pois = result['points_of_interest']
+        metrics = pois['poi_metrics']
         print(f"\nPoints of Interest:")
-        print(f"- Total POIs: {pois['total_count']} ({pois['pois_per_sq_km']:.1f} per km²)")
-        print(f"- Unique categories: {pois['unique_categories']}")
+        print(f"- Total important amenities: {metrics['total_important_pois']} ({metrics['important_pois_per_sq_km']:.1f} per km²)")
         
-        # Category breakdown
-        categories = result['points_of_interest']['category_metrics']['counts_by_type']
-        if categories:
-            print("\nPOI Categories:")
-            for category, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
-                print(f"- {category}: {count}")
+        # Show categories if any exist
+        categories = pois['category_metrics']
+        if categories['by_category']:
+            print("\nAmenities by Category:")
+            for category, count in sorted(categories['by_category'].items(), key=lambda x: x[1], reverse=True):
+                print(f"- {category.title()}: {count}")
+            
+            print("\nDetailed Amenity Types:")
+            for amenity_type, count in sorted(categories['by_type'].items(), key=lambda x: x[1], reverse=True):
+                print(f"- {amenity_type.replace('_', ' ').title()}: {count}")
         
         print("\n" + "="*50)
 

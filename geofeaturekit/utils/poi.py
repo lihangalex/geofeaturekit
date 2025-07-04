@@ -12,6 +12,43 @@ import pandas as pd
 from ..utils.progress import create_progress_bar, log_analysis_start, log_analysis_complete, log_error
 import geopandas as gpd
 
+# Define meaningful POI categories
+IMPORTANT_AMENITIES = {
+    # Food and Drink
+    'restaurant', 'cafe', 'bar', 'pub', 'fast_food',
+    
+    # Shopping
+    'marketplace', 'supermarket', 'convenience', 'department_store',
+    
+    # Services
+    'bank', 'pharmacy', 'post_office', 'hospital', 'clinic', 'doctors',
+    
+    # Transportation
+    'bus_station', 'taxi', 'bicycle_rental', 'car_sharing', 'parking',
+    
+    # Culture and Entertainment
+    'theatre', 'cinema', 'library', 'museum', 'arts_centre',
+    
+    # Education
+    'school', 'university', 'college', 'kindergarten',
+    
+    # Other Important
+    'police', 'fire_station', 'townhall', 'courthouse'
+}
+
+# Categories to group together
+CATEGORY_GROUPS = {
+    'dining': {'restaurant', 'cafe', 'bar', 'pub', 'fast_food'},
+    'shopping': {'marketplace', 'supermarket', 'convenience', 'department_store'},
+    'healthcare': {'hospital', 'clinic', 'doctors', 'pharmacy'},
+    'transportation': {'bus_station', 'taxi', 'bicycle_rental', 'car_sharing', 'parking'},
+    'culture': {'theatre', 'cinema', 'library', 'museum', 'arts_centre'},
+    'education': {'school', 'university', 'college', 'kindergarten'},
+    'services': {'bank', 'post_office'},
+    'emergency': {'police', 'fire_station'},
+    'government': {'townhall', 'courthouse'}
+}
+
 def get_poi_tags() -> dict:
     """Get POI tags dictionary for OSMnx query.
     
@@ -203,6 +240,13 @@ def process_pois(pois: Dict[str, Any]) -> Dict[str, Any]:
         "details": {category: data["items"] for category, data in pois.items()}
     }
 
+def _categorize_poi(amenity: str) -> str:
+    """Map a POI to its category group."""
+    for category, amenities in CATEGORY_GROUPS.items():
+        if amenity in amenities:
+            return category
+    return 'other'
+
 def analyze_pois(
     latitude: float,
     longitude: float,
@@ -242,32 +286,45 @@ def analyze_pois(
         return {
             "area_metrics": area_metrics,
             "poi_metrics": {
-                "total_count": 0,
-                "pois_per_sq_km": 0,
+                "total_important_pois": 0,
+                "important_pois_per_sq_km": 0,
                 "unique_categories": 0
             },
-            "category_metrics": {}
+            "category_metrics": {
+                "by_category": {},
+                "by_type": {}
+            }
         }
     
-    # Count POIs by category
-    category_counts = {}
+    # Count POIs by category and type
+    category_counts = {}  # High-level categories (dining, shopping, etc.)
+    type_counts = {}      # Specific types (restaurant, cafe, etc.)
+    important_poi_count = 0
+    
     for _, row in pois.iterrows():
-        category = row.get('amenity', 'other')
-        category_counts[category] = category_counts.get(category, 0) + 1
+        amenity = row.get('amenity', 'other')
+        if amenity in IMPORTANT_AMENITIES:
+            important_poi_count += 1
+            category = _categorize_poi(amenity)
+            
+            # Update category counts
+            category_counts[category] = category_counts.get(category, 0) + 1
+            
+            # Update specific type counts
+            type_counts[amenity] = type_counts.get(amenity, 0) + 1
     
-    # Calculate basic metrics
-    total_pois = sum(category_counts.values())
-    
+    # Calculate metrics
     poi_metrics = {
-        "total_count": total_pois,
-        "pois_per_sq_km": total_pois / area_sqkm if area_sqkm > 0 else 0,
-        "unique_categories": len(category_counts)
+        "total_important_pois": important_poi_count,
+        "important_pois_per_sq_km": important_poi_count / area_sqkm if area_sqkm > 0 else 0,
+        "unique_categories": len(set(category_counts.keys()))
     }
     
-    # Detailed category metrics
+    # Category metrics
     category_metrics = {
-        "counts_by_type": category_counts,
-        "categories_list": list(category_counts.keys())
+        "by_category": category_counts,  # High-level categories
+        "by_type": type_counts,         # Specific types
+        "categories_present": list(category_counts.keys())
     }
     
     return {
