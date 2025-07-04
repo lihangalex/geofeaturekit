@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/geofeaturekit.svg)](https://badge.fury.io/py/geofeaturekit)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 A Python package for extracting and analyzing geospatial features from OpenStreetMap data.
 
@@ -135,4 +135,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
+
+The project includes several third-party packages with their own licenses - see the [NOTICE.md](NOTICE.md) file for details. 
