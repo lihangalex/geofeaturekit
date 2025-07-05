@@ -1,5 +1,7 @@
 """Formatting constants for consistent decimal places."""
 
+from typing import Optional
+
 # Number of decimal places for different metric types
 LENGTH_DECIMALS = 1  # For lengths in meters
 DENSITY_DECIMALS = 2  # For density metrics (per square meter)
@@ -8,7 +10,7 @@ ANGLE_DECIMALS = 1  # For angles in degrees
 PERCENT_DECIMALS = 2  # For percentages
 AREA_DECIMALS = 2  # For areas in square meters (increased from 1 for better precision)
 
-def round_float(value: float | None, decimals: int) -> float | None:
+def round_float(value: Optional[float], decimals: int) -> Optional[float]:
     """Round a float value to specified number of decimal places.
     
     Args:
