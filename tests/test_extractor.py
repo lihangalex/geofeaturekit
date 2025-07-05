@@ -1,93 +1,119 @@
-"""Tests for the GeospatialFeatureExtractor class."""
+"""Tests for the UrbanFeatureExtractor class."""
 
 import pytest
 from unittest.mock import patch, MagicMock
 
-from geofeaturekit.core.extractor import GeospatialFeatureExtractor
-from geofeaturekit.core.config import AnalysisConfig
+from geofeaturekit.core.extractor import UrbanFeatureExtractor
 from geofeaturekit.exceptions.errors import GeoFeatureKitError
+from geofeaturekit import features_from_location
 
 def test_extractor_initialization():
-    """Test that extractor initializes correctly."""
-    config = AnalysisConfig(radius_meters=300)
-    extractor = GeospatialFeatureExtractor(config=config)
-    assert extractor.config.radius_meters == 300
+    """Test basic initialization of UrbanFeatureExtractor."""
+    extractor = UrbanFeatureExtractor()
+    assert extractor.radius_meters == 500
+    assert extractor.use_cache is True
+    assert extractor.cache_dir.endswith('/cache')
 
 def test_invalid_radius():
-    """Test that invalid radius raises ValueError."""
-    with pytest.raises(ValueError):
-        AnalysisConfig(radius_meters=-100)
+    """Test that invalid radius raises GeoFeatureKitError."""
+    with pytest.raises(GeoFeatureKitError):
+        UrbanFeatureExtractor(radius_meters=-100)
 
-def test_single_location():
-    """Test extraction for a single location."""
-    config = AnalysisConfig(radius_meters=300)
-    extractor = GeospatialFeatureExtractor(
-        config=config,
-        output_format='object'  # Explicitly request object output
-    )
-    
-    location = {
-        "latitude": 40.7829,
-        "longitude": -73.9654  # Central Park
+@patch('geofeaturekit.core.extractor.UrbanFeatureExtractor._extract_network_features')
+@patch('geofeaturekit.core.extractor.UrbanFeatureExtractor._extract_poi_features')
+def test_single_location(mock_poi, mock_network):
+    """Test extracting features for a single location."""
+    # Setup mocks
+    mock_network.return_value = {
+        'basic_metrics': {'total_street_length_meters': 1000},
+        'density_metrics': {},
+        'connectivity_metrics': {},
+        'street_pattern_metrics': {}
+    }
+    mock_poi.return_value = {
+        'absolute_counts': {'total_points_of_interest': 100},
+        'density_metrics': {},
+        'distribution_metrics': {}
     }
     
-    result = extractor.extract_features(location)
-    assert result is not None
-    assert result.location.latitude == 40.7829
-    assert result.location.longitude == -73.9654
-    assert result.radius == 300
-    assert result.network_stats is not None
-    assert result.points_of_interest is not None
-
-def test_batch_locations():
-    """Test extraction for multiple locations."""
-    config = AnalysisConfig(radius_meters=300)
-    extractor = GeospatialFeatureExtractor(
-        config=config,
-        enable_embeddings=True,
-        output_format='object'  # Explicitly request object output
-    )
+    extractor = UrbanFeatureExtractor()
+    features = extractor.features_from_location(40.7128, -74.0060)  # NYC
     
+    assert isinstance(features, dict)
+    assert 'network_metrics' in features
+    assert 'poi_metrics' in features
+    assert features['network_metrics']['basic_metrics']['total_street_length_meters'] == 1000
+    assert features['poi_metrics']['absolute_counts']['total_points_of_interest'] == 100
+
+@patch('geofeaturekit.core.extractor.UrbanFeatureExtractor._extract_network_features')
+@patch('geofeaturekit.core.extractor.UrbanFeatureExtractor._extract_poi_features')
+def test_batch_locations(mock_poi, mock_network):
+    """Test extracting features for multiple locations."""
+    # Setup mocks
+    mock_network.return_value = {
+        'basic_metrics': {'total_street_length_meters': 1000},
+        'density_metrics': {},
+        'connectivity_metrics': {},
+        'street_pattern_metrics': {}
+    }
+    mock_poi.return_value = {
+        'absolute_counts': {'total_points_of_interest': 100},
+        'density_metrics': {},
+        'distribution_metrics': {}
+    }
+    
+    extractor = UrbanFeatureExtractor()
     locations = [
-        {
-            "latitude": 40.7829,
-            "longitude": -73.9654  # Central Park
-        },
-        {
-            "latitude": 40.7580,
-            "longitude": -73.9855  # Times Square
-        }
+        (40.7128, -74.0060),  # NYC
+        (51.5074, -0.1278),   # London
     ]
+    features = extractor.features_from_location_batch(locations)
     
-    results = extractor.extract_features(locations)
-    assert isinstance(results, list)
-    assert len(results) == 2
-    for result in results:
-        assert result.radius == 300
-        assert result.network_stats is not None
-        assert result.points_of_interest is not None
+    assert isinstance(features, list)
+    assert len(features) == len(locations)
+    for feature in features:
+        assert isinstance(feature, dict)
+        assert 'network_metrics' in feature
+        assert 'poi_metrics' in feature
+        assert feature['network_metrics']['basic_metrics']['total_street_length_meters'] == 1000
+        assert feature['poi_metrics']['absolute_counts']['total_points_of_interest'] == 100
 
-def test_output_formats():
-    """Test different output formats."""
-    config = AnalysisConfig(radius_meters=300)
-    location = {
-        "latitude": 40.7829,
-        "longitude": -73.9654
+@patch('geofeaturekit.core.extractor.UrbanFeatureExtractor._extract_network_features')
+@patch('geofeaturekit.core.extractor.UrbanFeatureExtractor._extract_poi_features')
+def test_features_from_location_structure(mock_poi, mock_network):
+    """Test detailed output structure from features_from_location."""
+    # Setup mocks with complete structure
+    mock_network.return_value = {
+        'basic_metrics': {'total_street_length_meters': 1000},
+        'density_metrics': {'intersections_per_sqm': 0.001},
+        'connectivity_metrics': {'average_connections_per_node': 3},
+        'street_pattern_metrics': {'orientation_entropy': 0.8}
+    }
+    mock_poi.return_value = {
+        'absolute_counts': {'total_points_of_interest': 100},
+        'density_metrics': {'poi_per_sqm': 0.0001},
+        'distribution_metrics': {'unique_category_count': 10}
     }
     
-    # Test JSON output
-    extractor_json = GeospatialFeatureExtractor(
-        config=config,
-        output_format='json'
-    )
-    result_json = extractor_json.extract_features(location)
-    assert isinstance(result_json, dict)
+    extractor = UrbanFeatureExtractor()
+    features = extractor.features_from_location(40.7128, -74.0060)  # NYC
     
-    # Test pandas output
-    extractor_pandas = GeospatialFeatureExtractor(
-        config=config,
-        output_format='pandas'
-    )
-    result_pandas = extractor_pandas.extract_features(location)
-    assert 'latitude' in result_pandas.columns
-    assert 'longitude' in result_pandas.columns 
+    # Check main sections
+    assert 'network_metrics' in features
+    assert 'poi_metrics' in features
+    assert 'pedestrian_network' in features
+    assert 'land_use_metrics' in features
+    assert 'data_quality_metrics' in features
+    
+    # Check network metrics structure
+    network = features['network_metrics']
+    assert 'basic_metrics' in network
+    assert 'density_metrics' in network
+    assert 'connectivity_metrics' in network
+    assert 'street_pattern_metrics' in network
+    
+    # Check POI metrics structure
+    pois = features['poi_metrics']
+    assert 'absolute_counts' in pois
+    assert 'density_metrics' in pois
+    assert 'distribution_metrics' in pois 
