@@ -166,12 +166,18 @@ class TestIntegration:
         # Network metrics that should be scale-invariant
         net = metrics['network_metrics']
         assert net['basic_metrics']['total_nodes'] == 16
-        assert net['connectivity_metrics']['streets_to_nodes_ratio'] == pytest.approx(2.5, rel=1e-1)
+        # For 4x4 grid: 48 directed edges / 16 nodes = 3.0 ratio
+        assert net['connectivity_metrics']['streets_to_nodes_ratio'] == pytest.approx(3.0, rel=1e-1)
         
         # POI metrics that should be scale-invariant
         poi = metrics['poi_metrics']
         assert poi['absolute_counts']['total_points_of_interest'] == 50
-        assert poi['distribution_metrics']['diversity_metrics']['category_evenness'] <= 1
+        
+        # Density metrics should scale with area
+        area_sqkm = (3.14159 * radius ** 2) / 1000000  # Area in square kilometers
+        expected_poi_density = 50 / area_sqkm  # POIs per square kilometer
+        actual_poi_density = poi['density_metrics']['points_of_interest_per_sqkm']
+        assert actual_poi_density == pytest.approx(expected_poi_density, rel=1e-1)
 
 def test_error_handling():
     """Test error handling for invalid inputs."""

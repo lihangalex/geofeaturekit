@@ -80,8 +80,15 @@ class UrbanFeatureExtractor:
             Dictionary containing urban features and metrics
             
         Raises:
+            ValueError: If coordinates are invalid
             GeoFeatureKitError: If data download fails or metrics calculation fails
         """
+        # Validate coordinates
+        if not (-90 <= latitude <= 90):
+            raise ValueError(f"Invalid latitude: {latitude}. Must be between -90 and 90.")
+        if not (-180 <= longitude <= 180):
+            raise ValueError(f"Invalid longitude: {longitude}. Must be between -180 and 180.")
+        
         radius = radius_meters or self.radius_meters
         
         # Check cache first
