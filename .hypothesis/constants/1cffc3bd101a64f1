@@ -1,4 +1,0 @@
-# file: /Users/alexanderli/Cursor_projects/geofeaturekit/geofeaturekit/core/config.py
-# hypothesis_version: 6.135.25
-
-[100, 128, 200, 'Cultural', 'EPSG:4326', 'Education', 'Food & Drink', 'Healthcare', 'Landmarks', 'Other', 'Recreation', 'Services', 'Shopping', 'Transportation', 'amenity', 'arts_centre', 'atm', 'attraction', 'bank', 'bar', 'building', 'bus_station', 'cache', 'cafe', 'cinema', 'clinic', 'clothes', 'college', 'community_centre', 'convenience', 'doctors', 'electronics', 'fast_food', 'fitness_centre', 'gallery', 'geofeaturekit', 'gym', 'historic', 'hospital', 'leisure', 'library', 'mall', 'marketplace', 'memorial', 'monument', 'museum', 'office', 'output', 'park', 'parking', 'pharmacy', 'place_of_worship', 'playground', 'police', 'post_office', 'pub', 'public_transport', 'railway', 'restaurant', 'school', 'shop', 'sports_centre', 'station', 'stop_position', 'subway_entrance', 'supermarket', 'theatre', 'tourism', 'university', 'viewpoint']

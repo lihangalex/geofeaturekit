@@ -1,4 +1,0 @@
-# file: /Users/alexanderli/Cursor_projects/geofeaturekit/geofeaturekit/core/extractor.py
-# hypothesis_version: 6.135.25
-
-[0.0, 100.0, 500, 10000, 'absolute_counts', 'area_measurements', 'basic_metrics', 'cache', 'connectivity_metrics', 'data_quality_metrics', 'density_metrics', 'distribution_metrics', 'land_use_metrics', 'length', 'maximum', 'median', 'minimum', 'network_metrics', 'pedestrian_network', 'poi_metrics', 'standard_deviation', 'street_count', 'total_area_sqm', 'total_dead_ends', 'total_intersections', 'total_nodes']

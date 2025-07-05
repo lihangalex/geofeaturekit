@@ -60,4 +60,4 @@ docs/api/
 
 # Keep these files
 !.github/
-!requirements*.txt 
+!requirements*.txt .hypothesis/
