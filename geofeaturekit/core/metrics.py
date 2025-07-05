@@ -270,29 +270,13 @@ def calculate_poi_metrics(
     simpson_diversity = 1 - np.sum(category_proportions ** 2)
     evenness = shannon_diversity / np.log(len(category_counts)) if len(category_counts) > 1 else 1.0
     
-    # Calculate confidence intervals for category proportions
-    def calculate_proportion_ci(count, total, confidence=0.95):
-        """Calculate Wilson score interval for proportions."""
-        if total == 0:
-            return None, None
-        z = stats.norm.ppf((1 + confidence) / 2)
-        p = count / total
-        denominator = 1 + z**2/total
-        center = (p + z**2/(2*total)) / denominator
-        spread = z * np.sqrt(p*(1-p)/total + z**2/(4*total**2)) / denominator
-        return max(0.0, center - spread), min(1.0, center + spread)
-
-    # Absolute counts with confidence intervals
+    # Absolute counts - exact counts without confidence intervals
     absolute_counts = {
         "total_points_of_interest": len(pois),
         "counts_by_category": {
             f"total_{cat}_places": {
                 "count": count,
-                "percentage": round_float(count/len(pois) * 100, PERCENT_DECIMALS),
-                "confidence_interval_95": {
-                    "lower": round_float(ci[0] * 100, PERCENT_DECIMALS),
-                    "upper": round_float(ci[1] * 100, PERCENT_DECIMALS)
-                } if (ci := calculate_proportion_ci(count, len(pois))) != (None, None) else None
+                "percentage": round_float(count/len(pois) * 100, PERCENT_DECIMALS)
             }
             for cat, count in category_counts.items()
         }
@@ -347,11 +331,7 @@ def calculate_poi_metrics(
             "least_frequent_count": int(np.min(counts_array)),
             "median_category_count": float(np.median(counts_array)),
             "mean_category_count": float(np.mean(counts_array)),
-            "category_count_standard_deviation": float(np.std(counts_array)),
-            "confidence_interval_95": {
-                "lower": float(np.mean(counts_array) - 1.96 * np.std(counts_array) / np.sqrt(len(counts_array))),
-                "upper": float(np.mean(counts_array) + 1.96 * np.std(counts_array) / np.sqrt(len(counts_array)))
-            }
+            "category_count_standard_deviation": float(np.std(counts_array))
         },
         "largest_category": {
             "name": largest_category,

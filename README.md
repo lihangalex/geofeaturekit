@@ -5,11 +5,85 @@
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Tests](https://img.shields.io/badge/tests-passing-green.svg)](https://github.com/lihangalex/geofeaturekit)
 
-**A comprehensive Python library for extracting and analyzing urban features from OpenStreetMap data.**
+**GeoFeatureKit transforms simple coordinates into powerful urban insights. Analyze street networks, POI diversity, and spatial patterns effortlessly – no paid APIs or complex setup required.**
 
-GeoFeatureKit empowers urban planners, researchers, and developers to analyze city infrastructure, amenities, and spatial patterns using scientifically rigorous metrics and statistical analysis.
+✅ **Simple:** Just coordinates in – rich features out  
+✅ **Powerful:** Advanced urban metrics in one function call  
+✅ **Open Data:** Built entirely on OSM and public geospatial libraries
 
-## 🚀 Key Features
+---
+
+## 🚀 Quick Start
+
+Install GeoFeatureKit:
+
+```bash
+pip install geofeaturekit
+```
+
+Extract features for any location:
+
+```python
+from geofeaturekit import features_from_location
+
+# Example: Analyze Central Park
+features = features_from_location({
+    'latitude': 40.7829,
+    'longitude': -73.9654,
+    'radius_meters': 500
+})
+
+network = features['network_metrics']
+pois = features['poi_metrics']
+
+# Print key results
+print(f"Total street length: {network['basic_metrics']['total_street_length_meters']:.1f} m")
+print(f"Average connections per node: {network['connectivity_metrics']['average_connections_per_node']['value']:.2f} "
+      f"[95% CI: {network['connectivity_metrics']['average_connections_per_node']['confidence_interval_95']['lower']:.2f} – "
+      f"{network['connectivity_metrics']['average_connections_per_node']['confidence_interval_95']['upper']:.2f}]")
+
+print(f"Total POIs: {pois['absolute_counts']['total_points_of_interest']}")
+print("Top POI categories:")
+for category, data in list(pois['absolute_counts']['counts_by_category'].items())[:3]:
+    print(f"  • {category.replace('total_', '').replace('_places', '').replace('_', ' ').title()}: {data['count']} ({data['percentage']}%)")
+
+print(f"Shannon diversity index: {pois['distribution_metrics']['diversity_metrics']['shannon_diversity_index']:.2f}")
+print(f"Spatial pattern: {pois['distribution_metrics']['spatial_distribution']['pattern_interpretation']}")
+```
+
+**Example output:**
+```
+Total street length: 41,254.3 m
+Average connections per node: 3.26 [95% CI: 3.17 – 3.34]
+
+Total POIs: 185
+Top POI categories:
+  • Bench: 66 (35.7%)
+  • Unknown: 52 (28.1%)
+  • Waste Basket: 16 (8.6%)
+
+Shannon diversity index: 1.95
+Spatial pattern: clustered
+```
+
+## 📦 Installation
+
+```bash
+# Install from PyPI
+pip install geofeaturekit
+
+# Or install from GitHub for latest development version
+pip install git+https://github.com/lihangalex/geofeaturekit.git
+
+# For development
+git clone https://github.com/lihangalex/geofeaturekit.git
+cd geofeaturekit
+pip install -e .
+```
+
+**Requirements:** Python 3.9+, NumPy, SciPy, GeoPandas, OSMnx, NetworkX
+
+## 🔍 Key Features
 
 ### 🏙️ **Street Network Analysis**
 - **Connectivity Metrics**: Streets-to-nodes ratios, average connections per node with confidence intervals
@@ -25,51 +99,9 @@ GeoFeatureKit empowers urban planners, researchers, and developers to analyze ci
 
 ### 📊 **Advanced Urban Metrics**
 - **Data Quality Assessment**: Completeness percentages, reliability scores
-- **Statistical Analysis**: Confidence intervals for all major metrics
+- **Statistical Analysis**: Confidence intervals for estimated metrics only
 - **Spatial Analysis**: Area calculations, density distributions, pattern recognition
 - **Real-world Validation**: Tested on major urban areas worldwide
-
-## 📦 Installation
-
-```bash
-# Install from PyPI
-pip install geofeaturekit
-
-# Or install directly from GitHub for latest development version
-pip install git+https://github.com/lihangalex/geofeaturekit.git
-
-# For development
-git clone https://github.com/lihangalex/geofeaturekit.git
-cd geofeaturekit
-pip install -e .
-```
-
-### Requirements
-- Python 3.9+
-- NumPy, SciPy for statistical analysis
-- GeoPandas, OSMnx for geospatial processing
-- NetworkX for network analysis
-
-## 🎯 Quick Start
-
-```python
-from geofeaturekit import features_from_location
-
-# Analyze any location worldwide
-features = features_from_location({
-    'latitude': 40.7580,   # Times Square, NYC
-    'longitude': -73.9855,
-    'radius_meters': 500
-})
-
-# Access comprehensive metrics
-network = features['network_metrics']
-pois = features['poi_metrics']
-
-print(f"Street length: {network['basic_metrics']['total_street_length_meters']:.1f}m")
-print(f"POI count: {pois['absolute_counts']['total_points_of_interest']}")
-print(f"POI density: {pois['density_metrics']['points_of_interest_per_sqkm']:.1f} per km²")
-```
 
 ## 🌟 Real-World Examples
 
@@ -118,7 +150,7 @@ features = features_from_location({
 # - Excellent connectivity: 3.60 connections per node
 ```
 
-## 📈 Comprehensive Output Structure
+## 📈 Output Structure
 
 ```python
 {
@@ -166,11 +198,7 @@ features = features_from_location({
             "counts_by_category": {
                 "total_restaurant_places": {
                     "count": 173,
-                    "percentage": 16.1,
-                    "confidence_interval_95": {
-                        "lower": 14.0,
-                        "upper": 18.4
-                    }
+                    "percentage": 16.1
                 }
                 // ... 40+ categories
             }
@@ -297,30 +325,23 @@ conn = features['network_metrics']['connectivity_metrics']['average_connections_
 print(f"Average connections: {conn['value']:.3f}")
 print(f"95% CI: [{conn['confidence_interval_95']['lower']:.3f}, {conn['confidence_interval_95']['upper']:.3f}]")
 
-# POI category analysis with statistical measures
+# POI category analysis with exact counts
 categories = features['poi_metrics']['absolute_counts']['counts_by_category']
 for category, data in categories.items():
-    if 'confidence_interval_95' in data:
-        print(f"{category}: {data['percentage']:.1f}% ± {(data['confidence_interval_95']['upper'] - data['confidence_interval_95']['lower'])/2:.1f}%")
+    print(f"{category}: {data['count']} ({data['percentage']:.1f}%)")
 ```
 
-## 📋 Metric Standards
+## 📋 Standards & Quality
 
-All metrics follow **SI (International System of Units)** standards [[memory:2272173]]:
+**Metric Standards:** All metrics follow SI (International System of Units) standards:
+- **Length**: meters (m) • **Area**: square meters (m²) • **Density**: per square kilometer (per km²)
+- **Angles**: degrees (°) • **Statistical measures**: Include confidence intervals where statistically appropriate
 
-- **Length**: meters (m)
-- **Area**: square meters (m²) 
-- **Density**: per square kilometer (per km²)
-- **Angles**: degrees (°)
-- **Statistical measures**: Include confidence intervals where applicable
-
-## 🧪 Testing & Quality
-
-- **Comprehensive test suite**: Property-based testing with Hypothesis [[memory:2272171]]
-- **Real-world validation**: Tested on major urban areas
-- **Statistical rigor**: All major metrics include confidence intervals
-- **Error handling**: Robust handling of edge cases and missing data
-- **Performance**: Optimized for large-scale analysis
+**Testing & Quality:**
+- Comprehensive test suite with property-based testing
+- Real-world validation on major urban areas
+- Statistical rigor with confidence intervals for estimated metrics only
+- Robust error handling and performance optimization
 
 ## 🤝 Contributing
 
