@@ -96,35 +96,11 @@ class UrbanFeatureExtractor:
             pois = download_pois(latitude, longitude, radius)
             land_use = download_land_use(latitude, longitude, radius)
             
-            # Extract features
-            network_metrics = self._extract_network_features(G)
-            poi_metrics = self._extract_poi_features(pois)
+            # Calculate area in square meters
+            area_sqm = calculate_area_hectares(radius) * 10000
             
-            # Combine metrics
-            metrics = {
-                'network_metrics': network_metrics,
-                'poi_metrics': poi_metrics,
-                'pedestrian_network': {
-                    'intersection_spacing_meters': {
-                        'minimum': 0.0,
-                        'maximum': 0.0,
-                        'median': 0.0,
-                        'standard_deviation': 0.0
-                    }
-                },
-                'land_use_metrics': {
-                    'area_measurements': {
-                        'total_area_sqm': calculate_area_hectares(radius) * 10000,
-                    }
-                },
-                'data_quality_metrics': {
-                    'data_completeness_percentages': {
-                        'percent_network_data_complete': 100.0,
-                        'percent_poi_data_complete': 100.0,
-                        'percent_land_use_data_complete': 100.0
-                    }
-                }
-            }
+            # Use the proper metrics calculation function
+            metrics = calculate_all_metrics(G, pois, area_sqm)
             
             # Save to cache
             self._save_to_cache(cache_key, metrics)

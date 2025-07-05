@@ -20,26 +20,24 @@ setup(
     project_urls={
         "Bug Tracker": "https://github.com/lihangalex/geofeaturekit/issues",
         "Documentation": "https://github.com/lihangalex/geofeaturekit#readme",
+        "Source Code": "https://github.com/lihangalex/geofeaturekit",
     },
-    packages=find_packages(),
+    packages=find_packages(include=["geofeaturekit", "geofeaturekit.*"]),
+    package_data={
+        "geofeaturekit": ["py.typed"],
+    },
+    python_requires=">=3.9",
     install_requires=requirements,
-    entry_points={
-        "console_scripts": [
-            "geofeaturekit=geofeaturekit.cli.main:cli"
-        ]
-    },
-    python_requires=">=3.8",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD License",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering :: GIS",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-    ]
+    ],
 ) 

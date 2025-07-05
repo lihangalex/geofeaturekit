@@ -607,7 +607,28 @@ def download_network(
         G.graph['area_hectares'] = area_hectares
         
         # Add edge bearings (must be done before projection)
-        G = ox.bearing.add_edge_bearings(G)
+        try:
+            G = ox.bearing.add_edge_bearings(G)
+        except Exception as e:
+            # If bearing calculation fails, manually add bearings
+            print(f"Warning: Bearing calculation failed ({e}), calculating manually...")
+            for u, v, k, data in G.edges(keys=True, data=True):
+                if 'geometry' in data and data['geometry'] is not None:
+                    # Use geometry to calculate bearing
+                    coords = list(data['geometry'].coords)
+                    if len(coords) >= 2:
+                        lat1, lon1 = G.nodes[u]['y'], G.nodes[u]['x']
+                        lat2, lon2 = G.nodes[v]['y'], G.nodes[v]['x']
+                        bearing = ox.bearing.calculate_bearing(lat1, lon1, lat2, lon2)
+                        data['bearing'] = bearing
+                    else:
+                        data['bearing'] = 0.0
+                else:
+                    # Use node coordinates to calculate bearing
+                    lat1, lon1 = G.nodes[u]['y'], G.nodes[u]['x']
+                    lat2, lon2 = G.nodes[v]['y'], G.nodes[v]['x']
+                    bearing = ox.bearing.calculate_bearing(lat1, lon1, lat2, lon2)
+                    data['bearing'] = bearing
         
         # Project to UTM
         G = ox.project_graph(G)

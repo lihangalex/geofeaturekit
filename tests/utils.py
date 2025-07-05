@@ -92,82 +92,96 @@ def create_test_graph(
                     G_directed.nodes[u]['street_count'] += 1
                     G_directed.nodes[v]['street_count'] += 1
         
-        # For a 3x3 grid, we want exactly 24 directed edges (12 undirected)
-        # For larger grids, we want a streets-to-nodes ratio of 2.5
-        if n > 3:
-            # Calculate how many diagonal edges we need to add
-            # For larger grids, we want total_directed_edges = 5 * n * n
-            # This gives us total_undirected_edges = 2.5 * n * n
-            target_directed_edges = 5 * n * n
-            current_directed_edges = G_directed.number_of_edges()
-            edges_to_add = (target_directed_edges - current_directed_edges) // 2  # Divide by 2 since we add edges in both directions
-            
-            # Add diagonal edges systematically to achieve target ratio
-            # Start with interior nodes to maintain grid structure
-            interior_diagonals = []
-            for i in range(n-1):
-                for j in range(n-1):
-                    # Add diagonal edge from (i,j) to (i+1,j+1)
-                    u = (i, j)
-                    v = (i+1, j+1)
-                    if not G_directed.has_edge(u, v):
-                        interior_diagonals.append((u, v))
-                    # Add diagonal edge from (i+1,j) to (i,j+1)
-                    u = (i+1, j)
-                    v = (i, j+1)
-                    if not G_directed.has_edge(u, v):
-                        interior_diagonals.append((u, v))
-            
-            # Add diagonals until we reach target ratio
-            for u, v in interior_diagonals:
-                if edges_to_add <= 0:
-                    break
-                G_directed.add_edge(u, v)
-                G_directed.add_edge(v, u)
-                _add_edge_attributes(G_directed, u, v)
-                _add_edge_attributes(G_directed, v, u)
-                # Update street counts for both nodes
-                G_directed.nodes[u]['street_count'] += 1
-                G_directed.nodes[v]['street_count'] += 1
-                edges_to_add -= 1
-        
         G = G_directed
     else:
-        # Create random graph with proper connectivity
-        while True:
-            # Generate random points within the radius
-            points = np.random.uniform(-radius_meters/2, radius_meters/2, (num_nodes, 2))
-            # Create Delaunay triangulation for better street network
-            from scipy.spatial import Delaunay
-            tri = Delaunay(points)
+        # Modified random graph generation to ensure better connectivity
+        # Generate random points within the radius
+        points = np.random.uniform(-radius_meters/2, radius_meters/2, (num_nodes, 2))
+        
+        # Create Delaunay triangulation
+        from scipy.spatial import Delaunay
+        tri = Delaunay(points)
+        
+        # Create graph from triangulation
+        G = nx.MultiDiGraph()
+        
+        # Add nodes
+        for i, (x, y) in enumerate(points):
+            G.add_node(i, x=float(x), y=float(y), osmid=hash(str(i)), street_count=0)
+        
+        # Add edges from triangulation (both directions)
+        edges_added = set()
+        for simplex in tri.simplices:
+            for i in range(3):
+                u, v = simplex[i], simplex[(i+1)%3]
+                if (u, v) not in edges_added and (v, u) not in edges_added:
+                    # Add both directions
+                    G.add_edge(u, v)
+                    G.add_edge(v, u)
+                    _add_edge_attributes(G, u, v)
+                    _add_edge_attributes(G, v, u)
+                    edges_added.add((u, v))
+                    edges_added.add((v, u))
+                    # Update street count
+                    G.nodes[u]['street_count'] += 1
+                    G.nodes[v]['street_count'] += 1
+        
+        # Add more edges to ensure good connectivity
+        # We want at least 2.0 * num_nodes undirected edges
+        target_undirected_edges = int(2.0 * num_nodes)
+        current_undirected_edges = len(edges_added) // 2
+        
+        if current_undirected_edges < target_undirected_edges:
+            # Add edges to nearest neighbors until we reach target
+            from scipy.spatial import cKDTree
+            tree = cKDTree(points)
             
-            # Create graph from triangulation
-            G = nx.MultiDiGraph()
+            # Query k nearest neighbors for each point
+            k = min(6, num_nodes - 1)  # Increased from 4 to 6 for better connectivity
+            distances, indices = tree.query(points, k=k+1)  # k+1 because first point is self
             
-            # Add nodes
-            for i, (x, y) in enumerate(points):
-                G.add_node(i, x=float(x), y=float(y), osmid=hash(str(i)), street_count=0)
+            # Add edges to nearest neighbors
+            for i in range(num_nodes):
+                for j in range(1, k+1):  # Skip first neighbor (self)
+                    neighbor = indices[i, j]
+                    if i != neighbor and (i, neighbor) not in edges_added:
+                        G.add_edge(i, neighbor)
+                        G.add_edge(neighbor, i)
+                        _add_edge_attributes(G, i, neighbor)
+                        _add_edge_attributes(G, neighbor, i)
+                        edges_added.add((i, neighbor))
+                        edges_added.add((neighbor, i))
+                        G.nodes[i]['street_count'] += 1
+                        G.nodes[neighbor]['street_count'] += 1
+                        
+                        current_undirected_edges += 1
+                        if current_undirected_edges >= target_undirected_edges:
+                            break
+                if current_undirected_edges >= target_undirected_edges:
+                    break
             
-            # Add edges from triangulation (both directions)
-            edges_added = set()
-            for simplex in tri.simplices:
-                for i in range(3):
-                    u, v = simplex[i], simplex[(i+1)%3]
-                    if (u, v) not in edges_added and (v, u) not in edges_added:
-                        # Add both directions
+            # If we still don't have enough edges, add random edges
+            if current_undirected_edges < target_undirected_edges:
+                nodes = list(G.nodes())
+                attempts = 0
+                max_attempts = num_nodes * 10  # Prevent infinite loops
+                
+                while current_undirected_edges < target_undirected_edges and attempts < max_attempts:
+                    u = np.random.choice(nodes)
+                    v = np.random.choice(nodes)
+                    
+                    if u != v and (u, v) not in edges_added:
                         G.add_edge(u, v)
                         G.add_edge(v, u)
                         _add_edge_attributes(G, u, v)
                         _add_edge_attributes(G, v, u)
                         edges_added.add((u, v))
                         edges_added.add((v, u))
-                        # Update street count
                         G.nodes[u]['street_count'] += 1
                         G.nodes[v]['street_count'] += 1
-            
-            # Check if we have enough connectivity
-            if G.number_of_edges() / (2 * G.number_of_nodes()) >= 2.0:
-                break
+                        current_undirected_edges += 1
+                    
+                    attempts += 1
     
     # Add graph attributes
     G.graph['crs'] = 'epsg:4326'
@@ -204,7 +218,7 @@ def create_test_pois(
         y = r * np.sin(theta)
     elif pattern == 'clustered':
         # Generate clustered points
-        num_clusters = min(5, num_pois // 5)  # Ensure we don't create more clusters than points
+        num_clusters = min(5, max(1, num_pois // 5))  # Ensure at least 1 cluster
         points_per_cluster = num_pois // num_clusters
         remainder = num_pois % num_clusters
         
@@ -219,16 +233,17 @@ def create_test_pois(
         for i, (cx, cy) in enumerate(zip(cluster_centers_x, cluster_centers_y)):
             # Add one extra point to this cluster if we have remainder points
             cluster_size = points_per_cluster + (1 if i < remainder else 0)
-            # Generate points with tighter normal distribution around cluster center
-            cluster_points = np.random.normal(loc=[cx, cy], scale=radius_meters/20, size=(cluster_size, 2))  # Reduced scale from /10 to /20
-            # Clip points to stay within radius
-            distances = np.sqrt(np.sum(cluster_points**2, axis=1))
-            outside_radius = distances > radius_meters
-            if outside_radius.any():
-                # Scale points back to radius
-                cluster_points[outside_radius] *= (radius_meters / distances[outside_radius, np.newaxis])
-            x.extend(cluster_points[:, 0])
-            y.extend(cluster_points[:, 1])
+            if cluster_size > 0:  # Only generate points if cluster_size > 0
+                # Generate points with tighter normal distribution around cluster center
+                cluster_points = np.random.normal(loc=[cx, cy], scale=radius_meters/20, size=(cluster_size, 2))  # Reduced scale from /10 to /20
+                # Clip points to stay within radius
+                distances = np.sqrt(np.sum(cluster_points**2, axis=1))
+                outside_radius = distances > radius_meters
+                if outside_radius.any():
+                    # Scale points back to radius
+                    cluster_points[outside_radius] *= (radius_meters / distances[outside_radius, np.newaxis])
+                x.extend(cluster_points[:, 0])
+                y.extend(cluster_points[:, 1])
     else:  # grid
         # Calculate grid size to get closest to num_pois
         n = int(np.sqrt(num_pois))

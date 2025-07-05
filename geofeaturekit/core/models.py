@@ -64,11 +64,14 @@ class NetworkStats:
     centrality: Dict[str, float]
     road_distribution: Dict[str, float]
     density: float
+    # Urban form metrics
     space_syntax: Optional[Dict[str, float]] = None
     orientation: Optional[Dict[str, float]] = None
     morphology: Optional[Dict[str, float]] = None
     hierarchy: Optional[Dict[str, Dict[str, float]]] = None
-    spectral_features: Optional[List[float]] = None
+    # Connectivity patterns
+    connectivity_patterns: Optional[List[float]] = None
+    # ML embeddings
     contextual_embeddings: Optional[List[float]] = None
     
     def to_dict(self) -> Dict[str, Any]:
@@ -78,7 +81,7 @@ class NetworkStats:
     def get_ml_features(self) -> Dict[str, Any]:
         """Get features for machine learning."""
         features = {
-            'network_features': {
+            'streets': {
                 'total_length': self.total_street_length_meters,
                 'intersections': self.intersections,
                 'segments': self.street_segments,
@@ -89,15 +92,18 @@ class NetworkStats:
         }
         
         if self.space_syntax:
-            features['space_syntax'] = self.space_syntax
-        if self.orientation:
-            features['orientation'] = self.orientation
-        if self.morphology:
-            features['morphology'] = self.morphology
-        if self.hierarchy:
-            features['hierarchy'] = self.hierarchy
-        if self.spectral_features:
-            features['spectral_features'] = self.spectral_features
+            features['urban_form'] = {
+                'space_syntax': self.space_syntax,
+                'orientation': self.orientation,
+                'morphology': self.morphology,
+                'hierarchy': self.hierarchy
+            }
+        
+        if self.connectivity_patterns:
+            features['connectivity'] = {
+                'patterns': self.connectivity_patterns
+            }
+            
         if self.contextual_embeddings:
             features['embeddings'] = self.contextual_embeddings
             

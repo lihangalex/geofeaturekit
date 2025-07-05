@@ -54,13 +54,18 @@ def calculate_network_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
     # We can detect edge nodes by looking at their coordinates
     is_edge_node = {}
     is_corner_node = {}
-    for n, d in G.nodes(data=True):
-        if isinstance(n, tuple):  # Grid network nodes are tuples (i,j)
+    
+    # Check if this is a grid network by looking at node types
+    is_grid = all(isinstance(n, tuple) and len(n) == 2 for n in G.nodes())
+    
+    if is_grid:
+        n_sqrt = int(np.sqrt(total_nodes))
+        for n in G.nodes():
             i, j = n
-            n_sqrt = int(np.sqrt(total_nodes))
             is_corner_node[n] = (i in (0, n_sqrt-1) and j in (0, n_sqrt-1))
             is_edge_node[n] = (i in (0, n_sqrt-1) or j in (0, n_sqrt-1)) and not is_corner_node[n]
-        else:
+    else:
+        for n in G.nodes():
             is_corner_node[n] = False
             is_edge_node[n] = False
     
@@ -107,33 +112,44 @@ def calculate_network_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
         }
     
     # Calculate street bearings
-    bearings = [d['bearing'] for _, _, d in G.edges(data=True)]
+    bearings = []
+    for _, _, d in G.edges(data=True):
+        if 'bearing' in d:
+            bearings.append(d['bearing'])
+        else:
+            # If bearing is missing, skip this edge or use default
+            bearings.append(0.0)  # Default bearing
+    
     if not bearings:
         bearing_dist = {
             'mean_degrees': None,
             'std_dev_degrees': None
         }
+        ninety_deg_ratio = None
+        bearing_entropy = None
     else:
         bearing_dist = {
             'mean_degrees': np.mean(bearings),
             'std_dev_degrees': np.std(bearings)
         }
-    
-    # Calculate 90-degree intersections
-    angle_tolerance = 5  # degrees
-    ninety_deg_count = sum(1 for b in bearings if any(abs((b - a) % 90) <= angle_tolerance for a in [0, 90, 180, 270]))
-    ninety_deg_ratio = ninety_deg_count / len(bearings) if bearings else None
+        
+        # Calculate 90-degree intersections
+        angle_tolerance = 5  # degrees
+        ninety_deg_count = sum(1 for b in bearings if any(abs((b - a) % 90) <= angle_tolerance for a in [0, 90, 180, 270]))
+        ninety_deg_ratio = ninety_deg_count / len(bearings)
+        
+        # Calculate bearing entropy
+        bearing_entropy = stats.entropy(np.histogram(bearings, bins=36)[0])
     
     # Calculate connectivity metrics
-    # For a grid network:
-    # - 3x3 grid: 24 directed edges (12 undirected) / 9 nodes = 2.666667
-    # - Larger grids: target ratio of 2.5 (using undirected edges)
-    # So we need to handle both cases:
-    # 1. For 3x3 grid: use total_edges directly (24/9 = 2.666667)
-    # 2. For larger grids: use total_edges/2 to get undirected edges
-    if total_nodes == 9:  # 3x3 grid
+    # For grid networks:
+    # - 3x3 grid: 24 directed edges / 9 nodes = 2.666667
+    # - 4x4 grid: 48 directed edges / 16 nodes = 3.0
+    # For non-grid networks:
+    # - Use total_edges/2 to get undirected edges
+    if is_grid:
         streets_to_nodes = total_edges / total_nodes if total_nodes > 0 else None
-    else:  # Larger grids
+    else:
         undirected_edges = total_edges / 2
         streets_to_nodes = undirected_edges / total_nodes if total_nodes > 0 else None
     
@@ -174,7 +190,7 @@ def calculate_network_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
                 for key, value in bearing_dist.items()
             },
             "ninety_degree_intersection_ratio": round_float(ninety_deg_ratio, PERCENT_DECIMALS) if ninety_deg_ratio is not None else None,
-            "bearing_entropy": round_float(stats.entropy(np.histogram(bearings, bins=36)[0]), RATIO_DECIMALS) if bearings else None
+            "bearing_entropy": round_float(bearing_entropy, RATIO_DECIMALS) if bearing_entropy is not None else None
         }
     }
 
