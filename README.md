@@ -4,130 +4,95 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-A Python package for extracting and analyzing geospatial features from OpenStreetMap data.
+A Python library for extracting and analyzing urban features from OpenStreetMap data.
 
 ## Features
 
-- Extract street network metrics and points of interest around locations
-- Analyze network centrality, density, and road distribution
-- Generate network embeddings for machine learning
-- Flexible output options: in-memory or disk storage
-- Efficient handling of large datasets
-- Simple, intuitive API
+- **Street Network Analysis**: Extract and analyze street network characteristics including:
+  - Street lengths and connectivity
+  - Network topology and patterns
+  - Intersection analysis
+  - Street network density metrics
+
+- **Points of Interest**: Analyze the distribution and density of amenities, services, and other POIs
+  - Categorization by type
+  - Density analysis
+  - Accessibility metrics
+  - Diversity measures
 
 ## Installation
 
-You can install GeoFeatureKit using pip:
-
 ```bash
-pip install geofeaturekit
-```
-
-Or install from source:
-
-```bash
-git clone https://github.com/alexanderli/geofeaturekit.git
+# Clone the repository
+git clone https://github.com/yourusername/geofeaturekit.git
 cd geofeaturekit
+
+# Install in development mode
 pip install -e .
 ```
 
-## Usage
-
-### Python API
+## Quick Start
 
 ```python
-from geofeaturekit import GeospatialFeatureExtractor
-from geofeaturekit.core.config import AnalysisConfig
+from geofeaturekit import features_from_location
 
-# Configure the analysis
-config = AnalysisConfig(
-    radius_meters=300,  # Analysis radius in meters
-    output_dir="./results"  # Optional: Directory to save results
+# Extract features for a location
+features = features_from_location(
+    latitude=40.7128,
+    longitude=-74.0060,
+    radius_meters=1000
 )
 
-# Initialize the extractor
-extractor = GeospatialFeatureExtractor(config=config)
-
-# Analyze a single location
-location = {
-    "latitude": 43.6532,
-    "longitude": -79.3832
-}
-results = extractor.extract_features(location)
+# Access the results
+network = features['network']
+pois = features['pois']
 ```
 
-### Command Line Interface
+## Output Metrics
 
-Analyze a single location and display results:
-```bash
-geofeaturekit --lat 43.6532 --lon -79.3832 --in-memory
-```
+All metrics follow SI (International System of Units) standards.
 
-Save results to default output directory:
-```bash
-geofeaturekit --lat 43.6532 --lon -79.3832
-```
+### Network Metrics
 
-Customize analysis area and output location:
-```bash
-geofeaturekit --lat 43.6532 --lon -79.3832 --radius 1000 --save-dir ./my_results
-```
+Basic metrics:
+- Total street length (meters)
+- Number of intersections
+- Number of nodes and edges
+- Network connectivity measures
 
-Process multiple locations from a CSV file:
-```bash
-geofeaturekit --input locations.csv --save-dir ./results
-```
+Density metrics (all per square meter):
+- Street density (meters per m²)
+- Intersection density (per m²)
+- Node density (per m²)
 
-## Results
+Advanced metrics:
+- Street network patterns
+- Urban form characteristics
+- Accessibility measures
 
-GeoFeatureKit provides flexible options for handling results:
+### POI Metrics
 
-1. In-memory (default for API, opt-in for CLI):
-   - Results are returned directly as Python objects
-   - Best for small to medium datasets
-   - Interactive analysis and immediate use
+Basic metrics:
+- Total POI count
+- Category distribution
+- Unique amenity types
 
-2. Disk storage (default for CLI, optional for API):
-   - Results saved as JSON files
-   - Best for large datasets
-   - Each location saved in separate file
-   - Efficient memory usage
-   - Default directory: `output/`
+Density measures (all per square meter):
+- Total POI density (per m²)
+- Category-specific densities (per m²)
 
-Choose the approach that best fits your needs:
-- Small dataset → Use in-memory
-- Large dataset → Use disk storage
-- Unsure? Start with default disk storage
+Diversity metrics:
+- Category mix
+- Service variety
+- Land use mix
 
-## API Reference
+### Area Measurements
 
-### GeospatialFeatureExtractor
-
-```python
-def extract_features(
-    locations: Union[Dict[str, float], List[Dict[str, float]]],
-    config: Optional[AnalysisConfig] = None
-) -> Optional[Union[AnalysisResults, List[AnalysisResults]]]
-```
-
-Parameters:
-- `locations`: Single location dict or list of location dicts with 'latitude' and 'longitude'
-- `config`: Optional AnalysisConfig object for customizing analysis parameters (default: None)
-
-Returns:
-- If `output_format` is 'memory': Single AnalysisResults object or list of AnalysisResults objects
-- If `output_format` is 'json': None (results are saved to disk)
-
-### AnalysisConfig
-
-```python
-def __init__(
-    radius_meters: int = 300,  # Default analysis radius in meters
-    enable_embeddings: bool = True,  # Enable network embeddings
-    enable_urban_metrics: bool = True,  # Enable urban metrics computation
-    output_format: str = 'memory'  # 'memory' or 'json'
-)
-```
+All area measurements are in square meters (m²), following SI standards. This includes:
+- Total area coverage
+- Land use areas
+- Service catchment areas
+- Accessibility zones
 
 ## Contributing
 
@@ -135,6 +100,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 The project includes several third-party packages with their own licenses - see the [NOTICE.md](NOTICE.md) file for details. 
