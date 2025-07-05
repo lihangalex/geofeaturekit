@@ -65,23 +65,23 @@ print(features)
     "basic_metrics": {
       "total_nodes": 777,
       "total_street_segments": 2313,
-      "total_intersections": 0,
-      "total_dead_ends": 41,
+      "total_intersections": 731,
+      "total_dead_ends": 0,
       "total_street_length_meters": 80044.7
     },
     "density_metrics": {
-      "intersections_per_sqkm": 0.0,
-      "street_length_per_sqkm": 101.916091
+      "intersections_per_sqkm": 930.74,
+      "street_length_per_sqkm": 101.92
     },
     "connectivity_metrics": {
-      "streets_to_nodes_ratio": 1.488417,
-      "average_connections_per_node": {
-        "value": 3.589,
-        "confidence_interval_95": {
-          "lower": 3.536,
-          "upper": 3.643
+              "streets_to_nodes_ratio": 1.488,
+        "average_connections_per_node": {
+          "value": 5.954,
+          "confidence_interval_95": {
+            "lower": 5.837,
+            "upper": 6.071
+          }
         }
-      }
     },
     "street_pattern_metrics": {
       "street_segment_length_distribution": {
@@ -167,21 +167,21 @@ print(features)
     },
     "distribution_metrics": {
       "unique_category_count": 42,
-      "largest_category": {
-        "name": "restaurant",
-        "count": 173,
-        "percentage": 16.1
-      },
+              "largest_category": {
+          "name": "restaurant",
+          "count": 173,
+          "percentage": 16.08
+        },
       "diversity_metrics": {
         "shannon_diversity_index": 2.245,
         "simpson_diversity_index": 0.79,
         "category_evenness": 0.601
       },
       "spatial_distribution": {
-        "mean_nearest_neighbor_distance_meters": 45.2,
-        "nearest_neighbor_distance_std_meters": 28.7,
-        "r_statistic": 0.68,
-        "pattern_interpretation": "clustered"
+        "mean_nearest_neighbor_distance_meters": 13.2,
+        "nearest_neighbor_distance_std_meters": 9.7,
+        "r_statistic": 0.978,
+        "pattern_interpretation": "random"
       }
     }
   }
@@ -200,7 +200,7 @@ print(features)
 
 | **Network Intelligence** | **Value** | **Interpretation** |
 |--------------------------|-----------|-------------------|
-| 🚶 **Walkability** | 3.59 connections/node | High pedestrian connectivity |
+| 🚶 **Walkability** | 5.95 connections/node | Very high pedestrian connectivity |
 | 🗺️ **Street Pattern** | 2.056 bearing entropy | Organized grid-like layout |
 | 🛣️ **Network Density** | 101.9 km/km² | Dense street network |
 
@@ -208,7 +208,7 @@ print(features)
 |--------------------------|-----------|--------------|
 | 📊 **Shannon Diversity** | 2.245 | High variety → Rich ML features |
 | 📈 **Simpson Diversity** | 0.79 | Robust POI mix → Stable predictions |
-| 🎯 **Clustering Pattern** | R = 0.68 | Distinct activity zones → Zoning analysis |
+| 🎯 **Clustering Pattern** | R = 0.978 | Random distribution → Uniform coverage |
 
 > **Perfect for:** Price prediction models, accessibility scoring, urban planning analysis
 
