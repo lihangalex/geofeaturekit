@@ -1,9 +1,10 @@
 # GeoFeatureKit
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI](https://img.shields.io/pypi/v/geofeaturekit.svg)](https://pypi.org/project/geofeaturekit/)
+[![PyPI version](https://img.shields.io/pypi/v/geofeaturekit.svg)](https://pypi.org/project/geofeaturekit/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/geofeaturekit.svg)](https://pypi.org/project/geofeaturekit/)
+[![Tests](https://github.com/lihangalex/geofeaturekit/workflows/Test/badge.svg)](https://github.com/lihangalex/geofeaturekit/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-passing-green.svg)](https://github.com/lihangalex/geofeaturekit)
 
 **GeoFeatureKit turns raw coordinates into rich, structured geospatial features – instantly.**
 
@@ -25,7 +26,7 @@
 | 🏙️ **Urban Planning** | Accessibility research, zoning analysis | Spatial patterns, connectivity measures |
 | 🧠 **AI/ML** | Neural networks, spatial clustering | Environmental context, amenity features |
 
-## 🔧 Recent Updates (v0.2.4)
+## 🔧 Recent Updates
 
 ✅ **Fixed spatial distribution bug**: Mean nearest neighbor distance now correctly calculates distances to ALL other points, not just subsequent ones  
 ✅ **Improved coordinate detection**: Better handling of meter vs degree coordinate systems  
@@ -33,6 +34,7 @@
 ✅ **Fixed network metrics**: Corrected dead end and intersection counting logic  
 ✅ **Robust testing**: Replaced flaky tests with deterministic grid-based validation  
 ✅ **Python 3.9+ compatibility**: Full support across Python versions
+✅ **Automated releases**: GitHub Actions now automatically publishes to PyPI on version tags
 
 ## ✨ Why GeoFeatureKit?
 
@@ -381,6 +383,17 @@ GeoFeatureKit returns a comprehensive dictionary with four main sections:
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## 🚀 Automated Releases
+
+GeoFeatureKit uses automated releases via GitHub Actions. Every time a version tag is pushed, the package is automatically:
+
+- ✅ **Tested** on Python 3.9, 3.10, 3.11, and 3.12  
+- ✅ **Built** with proper validation  
+- ✅ **Published** to PyPI  
+- ✅ **Released** on GitHub with auto-generated notes  
+
+For maintainers: Use `./release.sh <version>` to automate the entire release process.
 
 ## 📄 License
 

@@ -82,6 +82,12 @@ jobs:
         python -m twine upload dist/*
         echo "✅ Successfully published to PyPI!"
     
+    - name: Set version for release
+      run: |
+        # Remove 'v' prefix from tag name for pip install
+        VERSION=${GITHUB_REF_NAME#v}
+        echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+    
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
@@ -94,7 +100,7 @@ jobs:
           
           **Install with:**
           ```bash
-          pip install geofeaturekit==${{ github.ref_name }}
+          pip install geofeaturekit==${{ env.PACKAGE_VERSION }}
           ```
           
           **Or upgrade:**
