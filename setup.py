@@ -10,7 +10,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="geofeaturekit",
-    version="0.2.4",
+    version="0.2.5",
     description="GeoFeatureKit transforms simple coordinates into powerful geospatial insights. Analyze street networks, POI diversity, and spatial patterns with professional progress tracking – no paid APIs or complex setup required.",
     author="Alexander Li",
     author_email="lihangalex@gmail.com",
