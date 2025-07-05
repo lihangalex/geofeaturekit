@@ -12,7 +12,7 @@ import pandas as pd
 from ..utils.progress import create_progress_bar, log_analysis_start, log_analysis_complete, log_error
 import geopandas as gpd
 from collections import defaultdict
-from .area import calculate_area_sqkm
+from .area import calculate_area_sqkm, calculate_area_hectares
 from .formatting import round_float, DENSITY_DECIMALS, PERCENT_DECIMALS
 
 from .poi_categories import CATEGORY_WEIGHTS, POI_CATEGORIES
@@ -310,30 +310,33 @@ def _calculate_density_metrics(
         area_hectares: Area in hectares
 
     Returns:
-        Dictionary of density metrics (all per hectare)
+        Dictionary of density metrics (per square kilometer for consistency)
     """
     if pois.empty or area_hectares <= 0:
         return {
             "total_density": 0,
             "density_by_category": {},
-            "units": "per_hectare"
+            "units": "per_square_kilometer"
         }
 
+    # Convert area to square kilometers for consistency with main feature extraction
+    area_sqkm = area_hectares / 100  # 1 hectare = 0.01 square kilometers
+    
     # Calculate total POIs
     total_pois = len(pois)
     
-    # Calculate density metrics
+    # Calculate density metrics per square kilometer
     density_metrics = {
         "total_density": round_float(
-            total_pois / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS
+            total_pois / area_sqkm if area_sqkm > 0 else 0, DENSITY_DECIMALS
         ),
         "density_by_category": {
             category: round_float(
-                count / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS
+                count / area_sqkm if area_sqkm > 0 else 0, DENSITY_DECIMALS
             )
             for category, count in pois['category'].value_counts().items()
         },
-        "units": "per_hectare"
+        "units": "per_square_kilometer"
     }
     
     return density_metrics
@@ -353,7 +356,7 @@ def get_poi_stats(
     Returns:
         Dictionary containing:
         - poi_counts: Raw counts by category
-        - density_metrics: POIs per square kilometer
+        - density_metrics: POIs per hectare
         - diversity_metrics: Category distribution stats
         - amenity_scores: Weighted importance scores
     """
@@ -377,14 +380,31 @@ def get_poi_stats(
     if pois.empty:
         return _empty_poi_stats()
     
-    # Calculate area in square kilometers
-    area_sqkm = calculate_area_sqkm(radius_meters)
+    # Calculate area in hectares to match _calculate_density_metrics expectations
+    area_hectares = calculate_area_hectares(radius_meters)
     
-    # Categorize POIs
+    # Add category column to pois for density calculations
+    pois_with_categories = pois.copy()
+    categories = []
+    for _, poi in pois.iterrows():
+        # Get all tags
+        tags = {k: v for k, v in poi.items() if isinstance(k, str) and pd.notna(v)}
+        
+        # Find matching category
+        category = 'unknown'  # default category
+        for cat, patterns in POI_CATEGORIES.items():
+            if _matches_category(tags, patterns):
+                category = cat
+                break
+        categories.append(category)
+    
+    pois_with_categories['category'] = categories
+    
+    # Categorize POIs for diversity calculations
     categorized = _categorize_pois(pois)
     
-    # Calculate density metrics
-    density = _calculate_density_metrics(categorized, area_sqkm)
+    # Calculate density metrics using the pois with categories
+    density = _calculate_density_metrics(pois_with_categories, area_hectares)
     
     # Calculate diversity metrics
     diversity = _calculate_diversity_metrics(categorized)

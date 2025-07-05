@@ -187,10 +187,10 @@ def _calculate_street_metrics(G: nx.MultiDiGraph, area_hectares: float) -> Dict[
             "total_street_length_km": float(total_length_km),
             "average_segment_length_meters": float(avg_segment_length),
             "street_length_stats": {
-                "min_meters": float(min(street_lengths)) if street_lengths else 0,
-                "max_meters": float(max(street_lengths)) if street_lengths else 0,
-                "median_meters": float(np.median(street_lengths)) if street_lengths else 0,
-                "std_meters": float(np.std(street_lengths)) if street_lengths else 0
+                "min_meters": round_float(float(min(street_lengths)) if street_lengths else 0, LENGTH_DECIMALS),
+                "max_meters": round_float(float(max(street_lengths)) if street_lengths else 0, LENGTH_DECIMALS),
+                "median_meters": round_float(float(np.median(street_lengths)) if street_lengths else 0, LENGTH_DECIMALS),
+                "std_meters": round_float(float(np.std(street_lengths)) if street_lengths else 0, LENGTH_DECIMALS)
             }
         },
         "density": {
@@ -230,10 +230,10 @@ def _calculate_network_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
     
     return {
         "connectivity": {
-            "average_degree": float(avg_degree),
+            "average_degree": round_float(avg_degree, RATIO_DECIMALS),
             "number_of_components": len(components),
             "largest_component_size": len(max(components, key=len)) if components else 0,
-            "network_efficiency": float(efficiency)
+            "network_efficiency": round_float(efficiency, RATIO_DECIMALS)
         }
     }
 
@@ -278,12 +278,12 @@ def _calculate_pattern_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
     
     return {
         "orientation": {
-            "mean_bearing": float(mean_bearing),
-            "bearing_entropy": float(entropy)
+            "mean_bearing": round_float(mean_bearing, ANGLE_DECIMALS),
+            "bearing_entropy": round_float(entropy, RATIO_DECIMALS)
         },
         "grid_characteristics": {
-            "grid_pattern_ratio": float(grid_ratio),
-            "organic_pattern_ratio": float(1 - grid_ratio)
+            "grid_pattern_ratio": round_float(grid_ratio, RATIO_DECIMALS),
+            "organic_pattern_ratio": round_float(1 - grid_ratio, RATIO_DECIMALS)
         }
     }
 
@@ -386,8 +386,8 @@ def _calculate_route_directness(G: nx.Graph) -> Dict[str, Any]:
             continue
     
     return {
-        "average_directness": float(np.mean(directness_ratios)) if directness_ratios else 0.0,
-        "direct_routes_ratio": float(direct_routes / len(pairs)) if pairs else 0.0
+        "average_directness": round_float(float(np.mean(directness_ratios)) if directness_ratios else 0.0, RATIO_DECIMALS),
+        "direct_routes_ratio": round_float(float(direct_routes / len(pairs)) if pairs else 0.0, RATIO_DECIMALS)
     }
 
 def _calculate_block_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
@@ -421,16 +421,16 @@ def _calculate_block_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
     hist, bin_edges = np.histogram(block_lengths, bins=10)
     
     return {
-        "average_length_meters": float(avg_length),
+        "average_length_meters": round_float(float(avg_length), LENGTH_DECIMALS),
         "length_stats": {
-            "min": float(min(block_lengths)),
-            "max": float(max(block_lengths)),
-            "median": float(np.median(block_lengths)),
-            "std": float(np.std(block_lengths))
+            "min": round_float(float(min(block_lengths)), LENGTH_DECIMALS),
+            "max": round_float(float(max(block_lengths)), LENGTH_DECIMALS),
+            "median": round_float(float(np.median(block_lengths)), LENGTH_DECIMALS),
+            "std": round_float(float(np.std(block_lengths)), LENGTH_DECIMALS)
         },
         "size_distribution": {
             "counts": hist.tolist(),
-            "bin_edges_meters": bin_edges.tolist()
+            "bin_edges_meters": [round_float(float(x), LENGTH_DECIMALS) for x in bin_edges.tolist()]
         }
     }
 

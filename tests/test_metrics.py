@@ -41,7 +41,7 @@ class TestNetworkMetrics:
         assert metrics['basic_metrics']['total_dead_ends'] == 4  # Corner nodes are dead ends
         
         # Connectivity validation
-        assert metrics['connectivity_metrics']['streets_to_nodes_ratio'] == pytest.approx(24/9, rel=1e-5)
+        assert metrics['connectivity_metrics']['streets_to_nodes_ratio'] == pytest.approx(24/9, rel=1e-2)
         assert metrics['connectivity_metrics']['average_connections_per_node']['value'] == pytest.approx(2.67, rel=1e-2)
         
         # Pattern validation

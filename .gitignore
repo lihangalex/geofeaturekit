@@ -65,3 +65,4 @@ docs/api/
 # Coverage reports
 coverage.xml
 htmlcov/
+.hypothesis/

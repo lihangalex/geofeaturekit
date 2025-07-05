@@ -780,7 +780,7 @@ def download_land_use(
         custom_tags: Custom OSM tags to filter land use
         
     Returns:
-        GeoDataFrame containing land use polygons
+        GeoDataFrame containing land use polygons (empty if no features found)
     """
     # Configure OSMnx
     ox.settings.use_cache = True
@@ -798,37 +798,50 @@ def download_land_use(
     if custom_tags:
         tags.update(custom_tags)
     
-    # Download features
-    features = ox.features_from_point(
-        (latitude, longitude),
-        tags=tags,
-        dist=radius_meters
-    )
-    
-    # Filter to just polygons
-    polygons = features[
-        features.geometry.type.isin(['Polygon', 'MultiPolygon'])
-    ].copy()
-    
-    # Classify land use
-    def classify_land_use(row):
-        if 'landuse' in row and row['landuse']:
-            if row['landuse'] in ['residential', 'apartments']:
-                return 'residential'
-            elif row['landuse'] in ['commercial', 'retail']:
-                return 'commercial'
-            elif row['landuse'] in ['mixed']:
-                return 'mixed_use'
+    try:
+        # Download features
+        features = ox.features_from_point(
+            (latitude, longitude),
+            tags=tags,
+            dist=radius_meters
+        )
         
-        if 'leisure' in row and row['leisure'] in ['park', 'garden']:
-            return 'open_space'
-        if 'natural' in row and row['natural'] in ['wood', 'grassland']:
-            return 'open_space'
+        # Filter to just polygons
+        polygons = features[
+            features.geometry.type.isin(['Polygon', 'MultiPolygon'])
+        ].copy()
+        
+        # Classify land use
+        def classify_land_use(row):
+            if 'landuse' in row and row['landuse']:
+                if row['landuse'] in ['residential', 'apartments']:
+                    return 'residential'
+                elif row['landuse'] in ['commercial', 'retail']:
+                    return 'commercial'
+                elif row['landuse'] in ['mixed']:
+                    return 'mixed_use'
             
-        return None
-    
-    polygons['landuse'] = polygons.apply(classify_land_use, axis=1)
-    return polygons[polygons['landuse'].notna()].copy()
+            if 'leisure' in row and row['leisure'] in ['park', 'garden']:
+                return 'open_space'
+            if 'natural' in row and row['natural'] in ['wood', 'grassland']:
+                return 'open_space'
+                
+            return None
+        
+        if not polygons.empty:
+            polygons['landuse'] = polygons.apply(classify_land_use, axis=1)
+            return polygons[polygons['landuse'].notna()].copy()
+        else:
+            # Return empty GeoDataFrame with correct structure
+            return gpd.GeoDataFrame(columns=['landuse'], geometry=[])
+            
+    except ox._errors.InsufficientResponseError:
+        # Handle case where no features are found (common with very small radii)
+        print(f"  Warning: No land use features found within {radius_meters}m radius")
+        return gpd.GeoDataFrame(columns=['landuse'], geometry=[])
+    except Exception as e:
+        print(f"  Warning: Error downloading land use data: {str(e)}")
+        return gpd.GeoDataFrame(columns=['landuse'], geometry=[])
 
 def calculate_intersection_density(G: nx.MultiDiGraph) -> float:
     """Calculate intersection density (intersections per hectare).
