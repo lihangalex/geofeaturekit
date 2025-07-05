@@ -1,10 +1,99 @@
-"""POI category utilities."""
+"""POI category definitions and weights."""
 
-from typing import Dict, List, Optional, Any
-import numpy as np
-from geofeaturekit.core.config import POI_CATEGORIES
-import pandas as pd
-from ..utils.progress import create_progress_bar, log_analysis_start, log_analysis_complete, log_error
+from typing import Dict, Set, List, Union, Any, Optional
+
+# Define meaningful POI categories with their OSM tag patterns
+POI_CATEGORIES: Dict[str, List[Dict[str, Set[str]]]] = {
+    "dining": [
+        {"amenity": {"restaurant", "cafe", "fast_food", "bar", "pub"}},
+        {"shop": {"coffee"}}
+    ],
+    
+    "retail": [
+        {"shop": {"convenience", "supermarket", "mall", "department_store"}},
+        {"amenity": {"marketplace"}},
+        {"building": {"retail", "commercial"}}
+    ],
+    
+    "education": [
+        {"amenity": {"school", "university", "college", "library", "kindergarten"}},
+        {"building": {"school", "university", "college"}}
+    ],
+    
+    "healthcare": [
+        {"amenity": {"hospital", "clinic", "doctors", "dentist", "pharmacy"}},
+        {"healthcare": {"hospital", "clinic", "doctor", "dentist"}},
+        {"building": {"hospital"}}
+    ],
+    
+    "culture": [
+        {"amenity": {"theatre", "cinema", "arts_centre", "museum"}},
+        {"tourism": {"museum", "gallery", "artwork"}},
+        {"leisure": {"culture_centre"}},
+        {"historic": {"monument", "memorial", "archaeological_site"}}
+    ],
+    
+    "recreation": [
+        {"leisure": {"park", "sports_centre", "fitness_centre", "swimming_pool"}},
+        {"amenity": {"park", "swimming_pool"}},
+        {"sport": {"fitness", "swimming", "gym"}},
+        {"building": {"sports_centre", "stadium"}}
+    ],
+    
+    "transportation": [
+        {"amenity": {"bus_station", "parking", "bicycle_parking", "car_sharing"}},
+        {"public_transport": {"station", "stop_position"}},
+        {"railway": {"station", "halt", "tram_stop"}},
+        {"highway": {"bus_stop"}}
+    ],
+    
+    "community": [
+        {"amenity": {"community_centre", "social_facility", "place_of_worship"}},
+        {"building": {"civic", "public"}},
+        {"leisure": {"community_centre"}},
+        {"office": {"government"}}
+    ],
+    
+    "financial": [
+        {"amenity": {"bank", "atm"}},
+        {"shop": {"money_lender"}},
+        {"office": {"financial"}}
+    ],
+    
+    "accommodation": [
+        {"tourism": {"hotel", "hostel", "guest_house", "apartment"}},
+        {"building": {"hotel"}},
+        {"amenity": {"hotel"}}
+    ],
+    
+    "services": [
+        {"shop": {"hairdresser", "laundry", "dry_cleaning"}},
+        {"amenity": {"post_office", "police", "fire_station"}},
+        {"office": {"insurance", "lawyer", "estate_agent"}}
+    ],
+    
+    "natural": [
+        {"natural": {"water", "beach", "wood", "tree"}},
+        {"leisure": {"nature_reserve", "garden"}},
+        {"landuse": {"forest", "grass", "meadow"}}
+    ]
+}
+
+# Define category weights for importance scoring
+CATEGORY_WEIGHTS: Dict[str, float] = {
+    "dining": 1.0,        # Basic amenity
+    "retail": 1.0,        # Basic amenity
+    "education": 1.5,     # Important community facility
+    "healthcare": 1.5,    # Important community facility
+    "culture": 1.2,       # Quality of life contributor
+    "recreation": 1.2,    # Quality of life contributor
+    "transportation": 1.3, # Infrastructure importance
+    "community": 1.4,     # Social infrastructure
+    "financial": 0.8,     # Convenience service
+    "accommodation": 0.7,  # Tourism/temporary use
+    "services": 0.9,      # Support services
+    "natural": 1.1        # Environmental value
+}
 
 def get_poi_tags() -> Dict[str, List[str]]:
     """Get all POI tags to fetch from OSM."""

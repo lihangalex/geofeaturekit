@@ -1,7 +1,7 @@
 """Progress tracking utilities."""
 
 import logging
-from typing import Optional, Iterator, TypeVar, Sequence
+from typing import Optional, Iterator, TypeVar, Sequence, Iterable, Any
 from tqdm import tqdm
 
 # Configure logging
@@ -70,4 +70,38 @@ def log_error(location: str, error: Exception):
 
 def log_rate_limit():
     """Log rate limit sleep."""
-    logger.debug("Sleeping to respect rate limits...") 
+    logger.debug("Sleeping to respect rate limits...")
+
+class ProgressTracker:
+    """Track progress of feature extraction."""
+    
+    def __init__(self):
+        """Initialize the progress tracker."""
+        self.current_step = None
+        self.total_steps = 0
+        self.completed_steps = 0
+    
+    def start(self, message: str):
+        """Start tracking a new step.
+        
+        Args:
+            message: Description of the step
+        """
+        self.current_step = message
+        logger.info(f"Starting: {message}")
+    
+    def update(self, message: str):
+        """Update the current step.
+        
+        Args:
+            message: New status message
+        """
+        self.current_step = message
+        logger.info(message)
+    
+    def complete(self):
+        """Mark the current step as complete."""
+        if self.current_step:
+            logger.info(f"Completed: {self.current_step}")
+            self.current_step = None
+            self.completed_steps += 1 

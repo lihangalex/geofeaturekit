@@ -4,13 +4,18 @@ import osmnx as ox
 import time
 from requests.exceptions import RequestException
 import numpy as np
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, List, Any, Tuple, Optional, Set
 from geopy.distance import geodesic
 from shapely.geometry import Point, Polygon, MultiPolygon
-from geofeaturekit.core.config import POI_CATEGORIES, DEFAULT_CRS
+from geofeaturekit.core.config import DEFAULT_CRS
 import pandas as pd
 from ..utils.progress import create_progress_bar, log_analysis_start, log_analysis_complete, log_error
 import geopandas as gpd
+from collections import defaultdict
+from .area import calculate_area_sqkm
+from .formatting import round_float, DENSITY_DECIMALS, PERCENT_DECIMALS
+
+from .poi_categories import CATEGORY_WEIGHTS, POI_CATEGORIES
 
 # Define meaningful POI categories
 IMPORTANT_AMENITIES = {
@@ -247,88 +252,387 @@ def _categorize_poi(amenity: str) -> str:
             return category
     return 'other'
 
-def analyze_pois(
+def analyze_pois(pois: gpd.GeoDataFrame, area_hectares: float) -> Dict[str, Any]:
+    """Analyze POIs and calculate metrics.
+
+    Args:
+        pois: GeoDataFrame containing POIs
+        area_hectares: Area in hectares
+
+    Returns:
+        Dictionary containing POI metrics
+    """
+    if pois.empty:
+        return {
+            "total_pois": 0,
+            "density_metrics": {
+                "total_density": 0,
+                "density_by_category": {},
+                "units": "per_hectare"
+            },
+            "categories": {},
+            "area_hectares": round_float(area_hectares, DENSITY_DECIMALS)
+        }
+
+    # Calculate total metrics
+    total_pois = len(pois)
+    
+    # Calculate density metrics
+    density = _calculate_density_metrics(pois, area_hectares)
+    
+    # Calculate category distribution
+    categories = pois['category'].value_counts().to_dict()
+    category_percentages = (pois['category'].value_counts(normalize=True) * 100).apply(
+        lambda x: round_float(x, PERCENT_DECIMALS)
+    ).to_dict()
+
+    return {
+        "total_pois": total_pois,
+        "density_metrics": density,
+        "categories": {
+            cat: {
+                "count": count,
+                "percentage": category_percentages[cat]
+            }
+            for cat, count in categories.items()
+        },
+        "area_hectares": round_float(area_hectares, DENSITY_DECIMALS)
+    }
+
+def _calculate_density_metrics(
+    pois: gpd.GeoDataFrame,
+    area_hectares: float
+) -> Dict[str, Any]:
+    """Calculate POI density metrics.
+
+    Args:
+        pois: GeoDataFrame containing POIs
+        area_hectares: Area in hectares
+
+    Returns:
+        Dictionary of density metrics (all per hectare)
+    """
+    if pois.empty or area_hectares <= 0:
+        return {
+            "total_density": 0,
+            "density_by_category": {},
+            "units": "per_hectare"
+        }
+
+    # Calculate total POIs
+    total_pois = len(pois)
+    
+    # Calculate density metrics
+    density_metrics = {
+        "total_density": round_float(
+            total_pois / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS
+        ),
+        "density_by_category": {
+            category: round_float(
+                count / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS
+            )
+            for category, count in pois['category'].value_counts().items()
+        },
+        "units": "per_hectare"
+    }
+    
+    return density_metrics
+
+def get_poi_stats(
     latitude: float,
     longitude: float,
     radius_meters: int
 ) -> Dict[str, Any]:
-    """Analyze points of interest around a location using absolute metrics.
+    """Get POI statistics for a location.
     
     Args:
         latitude: Location latitude
         longitude: Location longitude
-        radius_meters: Search radius in meters
+        radius_meters: Analysis radius in meters
         
     Returns:
         Dictionary containing:
-        - area_metrics: Analysis area information
-        - poi_metrics: Raw POI counts and statistics
-        - category_metrics: Detailed category information
+        - poi_counts: Raw counts by category
+        - density_metrics: POIs per square kilometer
+        - diversity_metrics: Category distribution stats
+        - amenity_scores: Weighted importance scores
     """
-    # Get POIs using the correct OSMnx function
-    tags = {'amenity': True}
+    # Get POIs from OSM
+    tags = {
+        'amenity': True,
+        'leisure': True,
+        'shop': True,
+        'tourism': True,
+        'historic': True,
+        'natural': True,
+        'building': ['civic', 'public', 'retail', 'commercial']
+    }
+    
+    pois = ox.features_from_point(
+        (latitude, longitude),
+        tags,
+        dist=radius_meters
+    )
+    
+    if pois.empty:
+        return _empty_poi_stats()
+    
+    # Calculate area in square kilometers
+    area_sqkm = calculate_area_sqkm(radius_meters)
+    
+    # Categorize POIs
+    categorized = _categorize_pois(pois)
+    
+    # Calculate density metrics
+    density = _calculate_density_metrics(categorized, area_sqkm)
+    
+    # Calculate diversity metrics
+    diversity = _calculate_diversity_metrics(categorized)
+    
+    # Calculate amenity scores
+    scores = _calculate_amenity_scores(categorized)
+    
+    return {
+        "poi_counts": categorized,
+        "density_metrics": density,
+        "diversity_metrics": diversity,
+        "amenity_scores": scores
+    }
+
+def _empty_poi_stats() -> Dict[str, Any]:
+    """Return empty statistics structure."""
+    return {
+        "poi_counts": {cat: 0 for cat in POI_CATEGORIES.keys()},
+        "density_metrics": {
+            "total_density_per_sqkm": 0.0,
+            "category_density": {cat: 0.0 for cat in POI_CATEGORIES.keys()}
+        },
+        "diversity_metrics": {
+            "category_count": 0,
+            "simpson_diversity": 0.0,
+            "evenness": 0.0,
+            "dominant_category": None
+        },
+        "amenity_scores": {
+            "total_score": 0.0,
+            "category_scores": {cat: 0.0 for cat in POI_CATEGORIES.keys()}
+        }
+    }
+
+def _categorize_pois(pois) -> Dict[str, int]:
+    """Categorize POIs into meaningful groups.
+    
+    Args:
+        pois: GeoDataFrame of POIs
+        
+    Returns:
+        Dictionary mapping categories to counts
+    """
+    counts = defaultdict(int)
+    
+    for _, poi in pois.iterrows():
+        # Get all tags
+        tags = {k: v for k, v in poi.items() if isinstance(k, str)}
+        
+        # Find matching category
+        category = None
+        for cat, patterns in POI_CATEGORIES.items():
+            if _matches_category(tags, patterns):
+                category = cat
+                break
+        
+        if category:
+            counts[category] += 1
+    
+    # Ensure all categories are present
+    return {cat: counts.get(cat, 0) for cat in POI_CATEGORIES.keys()}
+
+def _matches_category(tags: Dict[str, str], patterns: List[Dict[str, Set[str]]]) -> bool:
+    """Check if POI tags match category patterns.
+    
+    Args:
+        tags: POI tags
+        patterns: List of tag patterns that define the category
+        
+    Returns:
+        Whether the POI matches the category
+    """
+    for pattern in patterns:
+        matches = True
+        for key, values in pattern.items():
+            tag_value = str(tags.get(key, '')).lower()
+            if not tag_value or tag_value not in values:
+                matches = False
+                break
+        if matches:
+            return True
+    return False
+
+def _calculate_diversity_metrics(categorized: Dict[str, int]) -> Dict[str, Any]:
+    """Calculate POI diversity metrics.
+    
+    Args:
+        categorized: Dictionary of POI counts by category
+        
+    Returns:
+        Dictionary of diversity metrics
+    """
+    total_pois = sum(categorized.values())
+    
+    if total_pois == 0:
+        return {
+            "category_count": 0,
+            "simpson_diversity": 0.0,
+            "evenness": 0.0,
+            "dominant_category": None
+        }
+    
+    # Calculate proportions
+    proportions = [count / total_pois for count in categorized.values()]
+    
+    # Simpson's diversity index (1 - D)
+    simpson = 1 - sum(p * p for p in proportions)
+    
+    # Evenness (normalized Simpson's index)
+    max_simpson = 1 - (1 / len(categorized))
+    evenness = simpson / max_simpson if max_simpson > 0 else 0
+    
+    # Find dominant category
+    dominant = max(categorized.items(), key=lambda x: x[1])
+    
+    return {
+        "category_count": sum(1 for count in categorized.values() if count > 0),
+        "simpson_diversity": float(simpson),
+        "evenness": float(evenness),
+        "dominant_category": {
+            "name": dominant[0],
+            "count": dominant[1],
+            "percentage": round_float(dominant[1] / total_pois * 100 if total_pois > 0 else 0.0, PERCENT_DECIMALS)
+        }
+    }
+
+def _calculate_amenity_scores(categorized: Dict[str, int]) -> Dict[str, Any]:
+    """Calculate weighted amenity scores.
+    
+    Args:
+        categorized: Dictionary of POI counts by category
+        
+    Returns:
+        Dictionary of amenity scores
+    """
+    # Calculate weighted scores
+    category_scores = {}
+    total_score = 0.0
+    
+    for category, count in categorized.items():
+        weight = CATEGORY_WEIGHTS.get(category, 1.0)
+        score = count * weight
+        category_scores[category] = float(score)
+        total_score += score
+    
+    return {
+        "total_score": float(total_score),
+        "category_scores": category_scores
+    }
+
+def extract_pois(
+    gdf: gpd.GeoDataFrame,
+    categories: List[str] = None
+) -> gpd.GeoDataFrame:
+    """Extract and categorize points of interest.
+    
+    Args:
+        gdf: GeoDataFrame containing POI data
+        categories: List of OSM categories to include
+                   If None, includes all categories
+    
+    Returns:
+        GeoDataFrame containing filtered and processed POIs
+    """
+    if gdf.empty:
+        return gdf
+        
+    # Default categories if none specified
+    if categories is None:
+        categories = [
+            'amenity',
+            'leisure',
+            'shop',
+            'tourism',
+            'healthcare',
+            'education'
+        ]
+    
+    # Create mask for each category
+    masks = []
+    for category in categories:
+        mask = gdf[category].notna()
+        if mask.any():
+            masks.append(mask)
+    
+    # Combine masks
+    if masks:
+        combined_mask = masks[0]
+        for mask in masks[1:]:
+            combined_mask |= mask
+        
+        # Filter GeoDataFrame
+        filtered_gdf = gdf[combined_mask].copy()
+    else:
+        filtered_gdf = gdf.copy()
+    
+    # Create unified category column
+    filtered_gdf['category'] = None
+    for category in categories:
+        mask = filtered_gdf[category].notna()
+        filtered_gdf.loc[mask, 'category'] = filtered_gdf.loc[mask, category]
+    
+    return filtered_gdf
+
+def download_pois(
+    latitude: float,
+    longitude: float,
+    radius_meters: int,
+    custom_tags: Optional[Dict[str, Any]] = None
+) -> gpd.GeoDataFrame:
+    """Download points of interest from OpenStreetMap.
+    
+    Args:
+        latitude: Location latitude
+        longitude: Location longitude
+        radius_meters: Analysis radius in meters
+        custom_tags: Custom OSM tags to filter POIs
+        
+    Returns:
+        GeoDataFrame containing points of interest
+    """
+    # Configure OSMnx
+    ox.settings.use_cache = True
+    ox.settings.log_console = False
+    
+    # Default POI tags
+    tags = {
+        'amenity': True,
+        'leisure': True,
+        'shop': True,
+        'tourism': True,
+        'historic': True,
+        'office': True,
+        'public_transport': True,
+        'healthcare': True,
+        'education': True
+    }
+    
+    # Add custom tags if provided
+    if custom_tags:
+        tags.update(custom_tags)
+    
+    # Download POIs
     pois = ox.features_from_point(
         (latitude, longitude),
         tags=tags,
         dist=radius_meters
     )
     
-    # Calculate area in square kilometers
-    area_sqkm = np.pi * (radius_meters / 1000) ** 2
-    
-    # Area metrics
-    area_metrics = {
-        "area_size_sq_km": area_sqkm,
-        "radius_meters": radius_meters
-    }
-    
-    if pois.empty:
-        return {
-            "area_metrics": area_metrics,
-            "poi_metrics": {
-                "total_important_pois": 0,
-                "important_pois_per_sq_km": 0,
-                "unique_categories": 0
-            },
-            "category_metrics": {
-                "by_category": {},
-                "by_type": {}
-            }
-        }
-    
-    # Count POIs by category and type
-    category_counts = {}  # High-level categories (dining, shopping, etc.)
-    type_counts = {}      # Specific types (restaurant, cafe, etc.)
-    important_poi_count = 0
-    
-    for _, row in pois.iterrows():
-        amenity = row.get('amenity', 'other')
-        if amenity in IMPORTANT_AMENITIES:
-            important_poi_count += 1
-            category = _categorize_poi(amenity)
-            
-            # Update category counts
-            category_counts[category] = category_counts.get(category, 0) + 1
-            
-            # Update specific type counts
-            type_counts[amenity] = type_counts.get(amenity, 0) + 1
-    
-    # Calculate metrics
-    poi_metrics = {
-        "total_important_pois": important_poi_count,
-        "important_pois_per_sq_km": important_poi_count / area_sqkm if area_sqkm > 0 else 0,
-        "unique_categories": len(set(category_counts.keys()))
-    }
-    
-    # Category metrics
-    category_metrics = {
-        "by_category": category_counts,  # High-level categories
-        "by_type": type_counts,         # Specific types
-        "categories_present": list(category_counts.keys())
-    }
-    
-    return {
-        "area_metrics": area_metrics,
-        "poi_metrics": poi_metrics,
-        "category_metrics": category_metrics
-    } 
+    # Filter to just points
+    return pois[pois.geometry.type == 'Point'].copy() 

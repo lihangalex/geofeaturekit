@@ -1,12 +1,400 @@
-"""Advanced network analysis utilities."""
+"""Advanced network analysis utilities for pattern recognition and ML features."""
 
 import numpy as np
 import networkx as nx
 import osmnx as ox
 from node2vec import Node2Vec
 from scipy import sparse
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 import pandas as pd
+from sklearn.decomposition import PCA
+from shapely.geometry import Point, LineString, Polygon
+from shapely.ops import unary_union
+import geopandas as gpd
+from .area import calculate_area_hectares
+from ..utils.progress import create_progress_bar, log_analysis_start, log_analysis_complete, log_error
+from .formatting import (
+    round_float,
+    LENGTH_DECIMALS,
+    AREA_DECIMALS,
+    DENSITY_DECIMALS,
+    RATIO_DECIMALS,
+    ANGLE_DECIMALS
+)
+
+def calculate_advanced_metrics(G: nx.MultiDiGraph, area_hectares: float) -> Dict[str, Any]:
+    """Calculate advanced network metrics.
+    
+    Args:
+        G: NetworkX graph
+        area_hectares: Area in hectares
+        
+    Returns:
+        Dictionary containing advanced metrics
+    """
+    if not G or G.number_of_nodes() == 0:
+        return {}
+
+    # Calculate total length in kilometers
+    total_length_km = sum(d["length"] for _, _, d in G.edges(data=True)) / 1000
+
+    # Calculate density metrics
+    density_metrics = {
+        "intersections_per_hectare": round_float(
+            len([n for n, d in G.degree() if d > 2]) / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS
+        ),
+        "street_km_per_hectare": round_float(
+            total_length_km / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS
+        ),
+        "nodes_per_hectare": round_float(
+            G.number_of_nodes() / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS
+        ),
+        "units": "per_hectare"
+    }
+    
+    # Calculate other metrics
+    G_undirected = G.to_undirected()
+    avg_degree = float(np.mean([d for _, d in G_undirected.degree()]))
+    
+    return {
+        "density": density_metrics,
+        "average_degree": round_float(avg_degree, RATIO_DECIMALS)
+    }
+
+def compute_urban_form_metrics(G: nx.MultiDiGraph, area_sqkm: float) -> Dict[str, Any]:
+    """Compute metrics describing urban form and structure.
+    
+    Args:
+        G: NetworkX graph
+        area_sqkm: Area in square kilometers
+        
+    Returns:
+        Dictionary of urban form metrics
+    """
+    # Calculate network efficiency
+    efficiency = compute_network_efficiency(G)
+    
+    # Calculate network complexity
+    complexity = compute_network_complexity(G)
+    
+    return {
+        "efficiency": efficiency,
+        "complexity": complexity
+    }
+
+def compute_network_patterns(G: nx.MultiDiGraph) -> Dict[str, Any]:
+    """Analyze network patterns and structure.
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Dictionary of pattern metrics
+    """
+    # Calculate grid metrics
+    grid_metrics = compute_grid_metrics(G)
+    
+    # Calculate centrality patterns
+    centrality = compute_centrality_patterns(G)
+    
+    # Calculate network embeddings
+    embeddings = compute_network_embeddings(G, dimensions=64)
+    
+    return {
+        "grid_metrics": grid_metrics,
+        "centrality_patterns": centrality,
+        "embeddings": embeddings
+    }
+
+def compute_accessibility_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
+    """Compute accessibility and reachability metrics.
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Dictionary of accessibility metrics
+    """
+    # Convert to undirected for some calculations
+    G_undirected = G.to_undirected()
+    
+    # Calculate reach metrics
+    reach = compute_reach_metrics(G_undirected)
+    
+    # Calculate betweenness centrality (for major routes)
+    betweenness = nx.betweenness_centrality(G_undirected)
+    major_routes = identify_major_routes(G_undirected, betweenness)
+    
+    return {
+        "reach_metrics": reach,
+        "major_routes": major_routes
+    }
+
+def compute_network_efficiency(G: nx.Graph) -> Dict[str, float]:
+    """Calculate network efficiency metrics.
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Dictionary of efficiency metrics
+    """
+    # Sample nodes if graph is large
+    nodes = list(G.nodes())
+    if len(nodes) > 100:
+        np.random.seed(42)
+        nodes = np.random.choice(nodes, 100, replace=False)
+    
+    # Calculate average shortest path length
+    path_lengths = []
+    for i, start in enumerate(nodes):
+        for end in nodes[i+1:]:
+            try:
+                length = nx.shortest_path_length(G, start, end, weight='length')
+                path_lengths.append(length)
+            except nx.NetworkXNoPath:
+                continue
+    
+    if path_lengths:
+        avg_path = np.mean(path_lengths)
+        path_std = np.std(path_lengths)
+    else:
+        avg_path = 0
+        path_std = 0
+    
+    return {
+        "average_path_length_meters": float(avg_path),
+        "path_length_std_meters": float(path_std),
+        "network_diameter_meters": float(max(path_lengths)) if path_lengths else 0
+    }
+
+def compute_network_complexity(G: nx.Graph) -> Dict[str, float]:
+    """Calculate network complexity metrics.
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Dictionary of complexity metrics
+    """
+    # Calculate basic graph metrics
+    n_nodes = G.number_of_nodes()
+    n_edges = G.number_of_edges()
+    
+    # Calculate cyclomatic number (number of fundamental cycles)
+    components = nx.number_connected_components(G)
+    cyclomatic = n_edges - n_nodes + components
+    
+    # Calculate edge density
+    max_edges = n_nodes * (n_nodes - 1) / 2
+    edge_density = n_edges / max_edges if max_edges > 0 else 0
+    
+    return {
+        "cyclomatic_number": int(cyclomatic),
+        "edge_density": float(edge_density),
+        "average_node_degree": float(2 * n_edges / n_nodes) if n_nodes > 0 else 0
+    }
+
+def compute_grid_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
+    """Analyze grid-like patterns in the network.
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Dictionary of grid metrics
+    """
+    # Calculate street orientations
+    orientations = []
+    for _, _, data in G.edges(data=True):
+        if 'bearing' in data:
+            # Normalize to 0-180 degrees
+            orientation = data['bearing'] % 180
+            orientations.append(orientation)
+    
+    if not orientations:
+        return {
+            "grid_score": 0.0,
+            "dominant_angles": [],
+            "regularity_score": 0.0
+        }
+    
+    # Calculate orientation entropy
+    hist, _ = np.histogram(orientations, bins=18, range=(0, 180))
+    hist = hist / len(orientations)
+    entropy = -np.sum(hist * np.log2(hist + 1e-10))
+    
+    # Find dominant angles
+    peaks = find_orientation_peaks(hist)
+    dominant_angles = [i * 10 for i, is_peak in enumerate(peaks) if is_peak]
+    
+    # Calculate grid score based on perpendicular streets
+    grid_score = calculate_grid_score(dominant_angles)
+    
+    return {
+        "grid_score": float(grid_score),
+        "dominant_angles": dominant_angles,
+        "regularity_score": float(1 - entropy/4.17)  # Normalize by max entropy
+    }
+
+def compute_centrality_patterns(G: nx.Graph) -> Dict[str, Any]:
+    """Analyze centrality patterns in the network.
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Dictionary of centrality patterns
+    """
+    # Calculate different centrality measures
+    degree_cent = nx.degree_centrality(G)
+    close_cent = nx.closeness_centrality(G)
+    between_cent = nx.betweenness_centrality(G)
+    
+    # Calculate statistics for each measure
+    measures = {
+        "degree": degree_cent,
+        "closeness": close_cent,
+        "betweenness": between_cent
+    }
+    
+    patterns = {}
+    for name, measure in measures.items():
+        values = list(measure.values())
+        patterns[name] = {
+            "mean": float(np.mean(values)),
+            "std": float(np.std(values)),
+            "max": float(max(values)),
+            "distribution": np.histogram(values, bins=10)[0].tolist()
+        }
+    
+    return patterns
+
+def compute_reach_metrics(G: nx.Graph) -> Dict[str, Any]:
+    """Calculate reach metrics for different distances.
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Dictionary of reach metrics
+    """
+    distances = [400, 800, 1200]  # Common walking distances in meters
+    reach_metrics = {}
+    
+    for dist in distances:
+        reachable_length = 0
+        reachable_nodes = 0
+        
+        # Sample nodes if graph is large
+        nodes = list(G.nodes())
+        if len(nodes) > 50:
+            np.random.seed(42)
+            nodes = np.random.choice(nodes, 50, replace=False)
+        
+        for node in nodes:
+            # Get all nodes within distance
+            length = nx.single_source_dijkstra_path_length(G, node, cutoff=dist, weight='length')
+            reachable_length += sum(length.values())
+            reachable_nodes += len(length)
+        
+        if nodes:
+            avg_length = reachable_length / len(nodes)
+            avg_nodes = reachable_nodes / len(nodes)
+        else:
+            avg_length = 0
+            avg_nodes = 0
+        
+        reach_metrics[f"{dist}m"] = {
+            "average_reachable_length_meters": float(avg_length),
+            "average_reachable_nodes": float(avg_nodes)
+        }
+    
+    return reach_metrics
+
+def identify_major_routes(G: nx.Graph, betweenness: Dict) -> List[Dict[str, Any]]:
+    """Identify major routes in the network.
+    
+    Args:
+        G: NetworkX graph
+        betweenness: Betweenness centrality values
+        
+    Returns:
+        List of major routes
+    """
+    # Get high betweenness nodes
+    threshold = np.percentile(list(betweenness.values()), 90)
+    major_nodes = [node for node, cent in betweenness.items() if cent > threshold]
+    
+    # Find paths between major nodes
+    major_routes = []
+    for i, start in enumerate(major_nodes):
+        for end in major_nodes[i+1:]:
+            try:
+                path = nx.shortest_path(G, start, end, weight='length')
+                length = sum(G[path[i]][path[i+1]].get('length', 0) 
+                           for i in range(len(path)-1))
+                
+                major_routes.append({
+                    "start_node": str(start),
+                    "end_node": str(end),
+                    "path_nodes": [str(n) for n in path],
+                    "length_meters": float(length),
+                    "importance_score": float(betweenness[start] * betweenness[end])
+                })
+            except nx.NetworkXNoPath:
+                continue
+    
+    # Sort by importance
+    major_routes.sort(key=lambda x: x['importance_score'], reverse=True)
+    return major_routes[:10]  # Return top 10 routes
+
+def find_orientation_peaks(histogram: np.ndarray, threshold: float = 0.1) -> List[bool]:
+    """Find peaks in orientation histogram.
+    
+    Args:
+        histogram: Normalized histogram of orientations
+        threshold: Minimum relative height for a peak
+        
+    Returns:
+        List of booleans indicating which bins are peaks
+    """
+    peaks = []
+    for i in range(len(histogram)):
+        prev_val = histogram[(i - 1) % len(histogram)]
+        curr_val = histogram[i]
+        next_val = histogram[(i + 1) % len(histogram)]
+        
+        is_peak = (curr_val > threshold and
+                  curr_val > prev_val and
+                  curr_val > next_val)
+        peaks.append(is_peak)
+    
+    return peaks
+
+def calculate_grid_score(angles: List[int]) -> float:
+    """Calculate grid score based on dominant angles.
+    
+    Args:
+        angles: List of dominant angles in degrees
+        
+    Returns:
+        Grid score between 0 and 1
+    """
+    if not angles:
+        return 0.0
+    
+    # Check for perpendicular pairs
+    perpendicular_pairs = 0
+    total_pairs = 0
+    
+    for i, angle1 in enumerate(angles):
+        for angle2 in angles[i+1:]:
+            total_pairs += 1
+            if abs((angle1 - angle2) % 90) < 10:  # Allow 10° tolerance
+                perpendicular_pairs += 1
+    
+    return perpendicular_pairs / total_pairs if total_pairs > 0 else 0.0
 
 def compute_centrality_measures(G: nx.MultiDiGraph) -> dict:
     """Compute various centrality measures for the network."""
@@ -124,9 +512,6 @@ def compute_network_embeddings(
             
             # Reduce dimensionality if requested
             if reduce_dims is not None and reduce_dims < dimensions:
-                from sklearn.decomposition import PCA
-                
-                # First reduce individual node embeddings
                 pca = PCA(n_components=min(reduce_dims, embeddings_matrix.shape[0]))
                 reduced_embeddings = pca.fit_transform(embeddings_matrix)
                 
@@ -150,12 +535,9 @@ def compute_network_embeddings(
 
 def compute_advanced_stats(G: nx.MultiDiGraph) -> dict:
     """Compute all advanced network statistics."""
-    # Basic area calculation (approximate)
-    bounds = ox.utils_geo.bbox_from_point(
-        (G.graph['center_lat'], G.graph['center_lon']),
-        dist=G.graph['dist']
-    )
-    area_sqkm = ((bounds[2] - bounds[0]) * (bounds[3] - bounds[1]) * 111) ** 2
+    # Calculate area in hectares
+    radius_meters = G.graph['dist']
+    area_hectares = calculate_area_hectares(radius_meters)
     
     # Get advanced metrics
     centrality = compute_centrality_measures(G)
@@ -164,7 +546,7 @@ def compute_advanced_stats(G: nx.MultiDiGraph) -> dict:
     
     # Calculate additional metrics
     intersections = len([n for n, d in G.degree() if d > 2])
-    intersection_density = intersections / area_sqkm if area_sqkm > 0 else 0
+    intersection_density = intersections / area_hectares if area_hectares > 0 else 0
     
     # Average block length
     block_lengths = [float(d['length']) for _, _, d in G.edges(data=True) if 'length' in d]
@@ -174,10 +556,11 @@ def compute_advanced_stats(G: nx.MultiDiGraph) -> dict:
         "centrality": centrality,
         "road_distribution": road_dist,
         "density": {
-            "intersection_density": float(intersection_density),
-            "avg_block_length": float(avg_block_length)
+            "intersections_per_hectare": round_float(intersection_density, DENSITY_DECIMALS),
+            "average_block_length_meters": round_float(avg_block_length, LENGTH_DECIMALS),
+            "units": "per_hectare"
         },
-        "embeddings": embeddings
+        "network_embeddings": embeddings
     }
 
 def compute_space_syntax_metrics(G: nx.MultiDiGraph) -> Dict[str, float]:
@@ -238,11 +621,8 @@ def compute_orientation_entropy(G: nx.MultiDiGraph) -> Dict[str, float]:
 def compute_morphological_metrics(G: nx.MultiDiGraph) -> Dict[str, float]:
     """Compute morphological metrics of the street network."""
     # Get network bounds
-    bounds = ox.utils_geo.bbox_from_point(
-        (G.graph['center_lat'], G.graph['center_lon']),
-        dist=G.graph['dist']
-    )
-    area_sqkm = ((bounds[2] - bounds[0]) * (bounds[3] - bounds[1]) * 111) ** 2
+    radius_meters = G.graph['dist']
+    area_sqkm = calculate_area_hectares(radius_meters)
     
     # Basic metrics
     node_count = G.number_of_nodes()
@@ -259,10 +639,9 @@ def compute_morphological_metrics(G: nx.MultiDiGraph) -> Dict[str, float]:
     organic_ratio = 1 - (straight_edges / edge_count if edge_count > 0 else 0)
     
     return {
-        "connectivity_index": float(connectivity_index),
-        "network_density": float(network_density),
-        "organic_ratio": float(organic_ratio),
-        "intersection_density": float(node_count / area_sqkm if area_sqkm > 0 else 0)
+        "connectivity_index": round_float(connectivity_index, 2),
+        "network_density_meters_per_sqkm": round_float(network_density, 1),
+        "organic_ratio": round_float(organic_ratio, 2)
     }
 
 def check_road_type(highway: Any, valid_types: List[str]) -> bool:
@@ -384,4 +763,165 @@ def compute_spectral_features(G: nx.MultiDiGraph) -> List[float]:
         return [float(x) for x in spectral_features]
     except Exception as e:
         print(f"  Warning: Error computing spectral features: {str(e)}")
-        return [0.0] * 10 
+        return [0.0] * 10
+
+def download_land_use(
+    latitude: float,
+    longitude: float,
+    radius_meters: int,
+    custom_tags: Optional[Dict[str, Any]] = None
+) -> gpd.GeoDataFrame:
+    """Download land use data from OpenStreetMap.
+    
+    Args:
+        latitude: Location latitude
+        longitude: Location longitude
+        radius_meters: Analysis radius in meters
+        custom_tags: Custom OSM tags to filter land use
+        
+    Returns:
+        GeoDataFrame containing land use polygons
+    """
+    # Configure OSMnx
+    ox.settings.use_cache = True
+    ox.settings.log_console = False
+    
+    # Default land use tags
+    tags = {
+        'landuse': True,
+        'leisure': True,
+        'natural': True,
+        'building': True
+    }
+    
+    # Add custom tags if provided
+    if custom_tags:
+        tags.update(custom_tags)
+    
+    # Download features
+    features = ox.features_from_point(
+        (latitude, longitude),
+        tags=tags,
+        dist=radius_meters
+    )
+    
+    # Filter to just polygons
+    polygons = features[
+        features.geometry.type.isin(['Polygon', 'MultiPolygon'])
+    ].copy()
+    
+    # Classify land use
+    def classify_land_use(row):
+        if 'landuse' in row and row['landuse']:
+            if row['landuse'] in ['residential', 'apartments']:
+                return 'residential'
+            elif row['landuse'] in ['commercial', 'retail']:
+                return 'commercial'
+            elif row['landuse'] in ['mixed']:
+                return 'mixed_use'
+        
+        if 'leisure' in row and row['leisure'] in ['park', 'garden']:
+            return 'open_space'
+        if 'natural' in row and row['natural'] in ['wood', 'grassland']:
+            return 'open_space'
+            
+        return None
+    
+    polygons['landuse'] = polygons.apply(classify_land_use, axis=1)
+    return polygons[polygons['landuse'].notna()].copy()
+
+def calculate_intersection_density(G: nx.MultiDiGraph) -> float:
+    """Calculate intersection density (intersections per hectare).
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Intersection density (intersections/hectare)
+    """
+    if not G or G.number_of_nodes() == 0:
+        return 0.0
+    
+    area_hectares = calculate_area_hectares(G.graph['dist'])
+    intersections = len([n for n, d in G.degree() if d > 2])
+    return round_float(intersections / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS)
+
+def calculate_network_density(G: nx.MultiDiGraph) -> float:
+    """Calculate network density (total street length per hectare).
+    
+    Args:
+        G: NetworkX graph
+        
+    Returns:
+        Network density (kilometers/hectare)
+    """
+    if not G or G.number_of_nodes() == 0:
+        return 0.0
+    
+    area_hectares = calculate_area_hectares(G.graph['dist'])
+    total_length_km = sum(d["length"] for _, _, d in G.edges(data=True)) / 1000
+    return round_float(total_length_km / area_hectares if area_hectares > 0 else 0, DENSITY_DECIMALS)
+
+def calculate_intersection_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
+    """Calculate intersection-related metrics.
+
+    Args:
+        G: NetworkX graph
+
+    Returns:
+        Dictionary containing intersection metrics
+    """
+    if not G or G.number_of_nodes() == 0:
+        return {}
+
+    # Calculate area in hectares
+    area_hectares = calculate_area_hectares(G.graph['dist'])
+    
+    # Count intersections
+    intersections = len([n for n, d in G.degree() if d > 2])
+    
+    # Calculate intersection density
+    intersection_density = intersections / area_hectares if area_hectares > 0 else 0
+
+    return {
+        "density": {
+            "intersections_per_hectare": round_float(intersection_density, DENSITY_DECIMALS),
+            "units": "per_hectare"
+        },
+        "total_intersections": intersections,
+        "area_hectares": round_float(area_hectares, AREA_DECIMALS)
+    }
+
+def calculate_network_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
+    """Calculate network-related metrics.
+
+    Args:
+        G: NetworkX graph
+
+    Returns:
+        Dictionary containing network metrics
+    """
+    if not G or G.number_of_nodes() == 0:
+        return {}
+
+    # Calculate area in hectares
+    area_hectares = calculate_area_hectares(G.graph['dist'])
+    
+    # Calculate total length
+    total_length = sum(d["length"] for _, _, d in G.edges(data=True))
+    total_length_km = total_length / 1000
+    
+    # Calculate network density
+    network_density = total_length_km / area_hectares if area_hectares > 0 else 0
+
+    return {
+        "length": {
+            "total_length_meters": round_float(total_length, LENGTH_DECIMALS),
+            "total_length_km": round_float(total_length_km, LENGTH_DECIMALS)
+        },
+        "density": {
+            "street_km_per_hectare": round_float(network_density, DENSITY_DECIMALS),
+            "units": "per_hectare"
+        },
+        "area_hectares": round_float(area_hectares, AREA_DECIMALS)
+    } 
