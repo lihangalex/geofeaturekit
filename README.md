@@ -5,379 +5,395 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-passing-green.svg)](https://github.com/lihangalex/geofeaturekit)
 
-**GeoFeatureKit transforms simple coordinates into powerful urban insights. Analyze street networks, POI diversity, and spatial patterns effortlessly – no paid APIs or complex setup required.**
+**GeoFeatureKit turns raw coordinates into rich, structured geospatial features – instantly.**
 
-✅ **Simple:** Just coordinates in – rich features out  
-✅ **Powerful:** Advanced urban metrics in one function call  
-✅ **Open Data:** Built entirely on OSM and public geospatial libraries
+## 🎯 What You Get
 
----
+**Input:** Just latitude and longitude coordinates  
+**Output:** Comprehensive geospatial intelligence including:
+
+- **40+ POI categories**: restaurants, hospitals, subway stations, benches, toilets, and more
+- **Street network metrics**: connectivity, total street length, segment distributions, pattern entropy
+- **Spatial intelligence**: POI diversity indices (Shannon, Simpson) and clustering patterns
+
+## 🚀 Use Cases
+
+| **Domain** | **Application** | **Key Features** |
+|------------|-----------------|------------------|
+| 🤖 **Machine Learning** | Price prediction, exposure analysis | Rich feature vectors, contextual embeddings |
+| 📊 **Research** | Propensity score matching | Urban covariates, accessibility metrics |
+| 🏙️ **Urban Planning** | Accessibility research, zoning analysis | Spatial patterns, connectivity measures |
+| 🧠 **AI/ML** | Neural networks, spatial clustering | Environmental context, amenity features |
+
+## ✨ Why GeoFeatureKit?
+
+| **Advantage** | **Benefit** |
+|---------------|-------------|
+| ✅ **Simple** | Just coordinates in – structured features out |
+| ✅ **Powerful** | Dozens of geospatial metrics in one function call |
+| ✅ **User-friendly** | Optional progress bars and verbose modes |
+| ✅ **Open Data** | Built entirely on OSM and public geospatial libraries |
 
 ## 🚀 Quick Start
 
-Install GeoFeatureKit:
-
+### Installation
 ```bash
 pip install geofeaturekit
 ```
 
-Extract features for any location:
+### Basic Usage
 
 ```python
 from geofeaturekit import features_from_location
 
-# Example: Analyze Central Park
+# Example: Analyze Times Square with progress bar
 features = features_from_location({
-    'latitude': 40.7829,
-    'longitude': -73.9654,
+    'latitude': 40.7580,
+    'longitude': -73.9855,
     'radius_meters': 500
-})
+}, show_progress=True)
 
-network = features['network_metrics']
-pois = features['poi_metrics']
-
-# Print key results
-print(f"Total street length: {network['basic_metrics']['total_street_length_meters']:.1f} m")
-print(f"Average connections per node: {network['connectivity_metrics']['average_connections_per_node']['value']:.2f} "
-      f"[95% CI: {network['connectivity_metrics']['average_connections_per_node']['confidence_interval_95']['lower']:.2f} – "
-      f"{network['connectivity_metrics']['average_connections_per_node']['confidence_interval_95']['upper']:.2f}]")
-
-print(f"Total POIs: {pois['absolute_counts']['total_points_of_interest']}")
-print("Top POI categories:")
-for category, data in list(pois['absolute_counts']['counts_by_category'].items())[:3]:
-    print(f"  • {category.replace('total_', '').replace('_places', '').replace('_', ' ').title()}: {data['count']} ({data['percentage']}%)")
-
-print(f"Shannon diversity index: {pois['distribution_metrics']['diversity_metrics']['shannon_diversity_index']:.2f}")
-print(f"Spatial pattern: {pois['distribution_metrics']['spatial_distribution']['pattern_interpretation']}")
+print(features)
 ```
 
-**Example output:**
-```
-Total street length: 41,254.3 m
-Average connections per node: 3.26 [95% CI: 3.17 – 3.34]
+## 📝 Example Output
 
-Total POIs: 185
-Top POI categories:
-  • Bench: 66 (35.7%)
-  • Unknown: 52 (28.1%)
-  • Waste Basket: 16 (8.6%)
-
-Shannon diversity index: 1.95
-Spatial pattern: clustered
-```
-
-## 📦 Installation
-
-```bash
-# Install from PyPI
-pip install geofeaturekit
-
-# Or install from GitHub for latest development version
-pip install git+https://github.com/lihangalex/geofeaturekit.git
-
-# For development
-git clone https://github.com/lihangalex/geofeaturekit.git
-cd geofeaturekit
-pip install -e .
-```
-
-**Requirements:** Python 3.9+, NumPy, SciPy, GeoPandas, OSMnx, NetworkX
-
-## 🔍 Key Features
-
-### 🏙️ **Street Network Analysis**
-- **Connectivity Metrics**: Streets-to-nodes ratios, average connections per node with confidence intervals
-- **Pattern Analysis**: Street bearing distributions, entropy measures, grid pattern detection
-- **Density Calculations**: Street length per km², intersection density, segment distributions
-- **Statistical Rigor**: Confidence intervals, standard deviations, robust statistical measures
-
-### 📍 **Points of Interest (POI) Analysis** 
-- **Comprehensive Categorization**: 40+ POI categories with automatic classification
-- **Density Metrics**: POI counts per km² with category-specific breakdowns
-- **Diversity Analysis**: Shannon diversity index, Simpson diversity, category evenness
-- **Spatial Distribution**: Nearest neighbor analysis, clustering patterns
-
-### 📊 **Advanced Urban Metrics**
-- **Data Quality Assessment**: Completeness percentages, reliability scores
-- **Statistical Analysis**: Confidence intervals for estimated metrics only
-- **Spatial Analysis**: Area calculations, density distributions, pattern recognition
-- **Real-world Validation**: Tested on major urban areas worldwide
-
-## 🌟 Real-World Examples
-
-### Times Square Analysis
-```python
-# Dense commercial district
-features = features_from_location({
-    'latitude': 40.7580, 'longitude': -73.9855, 'radius_meters': 500
-})
-
-# Results:
-# - 777 network nodes, 2,313 street segments
-# - 80.0 km of streets in 0.785 km² area
-# - 1,076 POIs (1,371 per km²)
-# - 42 unique POI categories
-# - High connectivity: 3.59 connections per node
-```
-
-### Central Park Analysis  
-```python
-# Park and recreational area
-features = features_from_location({
-    'latitude': 40.7829, 'longitude': -73.9654, 'radius_meters': 500  
-})
-
-# Results:
-# - 356 network nodes, 1,002 street segments
-# - 41.3 km of paths and streets
-# - 185 POIs (236 per km²) 
-# - Dominated by benches (35.7%) and recreational amenities
-# - Lower but adequate connectivity: 3.26 connections per node
-```
-
-### Grand Central District
-```python
-# Transportation and business hub
-features = features_from_location({
-    'latitude': 40.7527, 'longitude': -73.9772, 'radius_meters': 500
-})
-
-# Results:
-# - 1,002 network nodes, 2,975 street segments  
-# - 91.2 km of streets (highest density)
-# - 1,131 POIs (1,441 per km²)
-# - Mixed commercial and transportation amenities
-# - Excellent connectivity: 3.60 connections per node
-```
-
-## 📈 Output Structure
-
-```python
+**Times Square Analysis (500m radius):**
+```json
 {
-    "network_metrics": {
-        "basic_metrics": {
-            "total_nodes": 777,
-            "total_street_segments": 2313,
-            "total_intersections": 0,
-            "total_dead_ends": 41,
-            "total_street_length_meters": 80044.7
-        },
-        "density_metrics": {
-            "intersections_per_sqkm": 0.0,
-            "street_length_per_sqkm": 101.916091
-        },
-        "connectivity_metrics": {
-            "streets_to_nodes_ratio": 1.488417,
-            "average_connections_per_node": {
-                "value": 3.589,
-                "confidence_interval_95": {
-                    "lower": 3.536,
-                    "upper": 3.643
-                }
-            }
-        },
-        "street_pattern_metrics": {
-            "street_segment_length_distribution": {
-                "minimum_meters": 0.5,
-                "maximum_meters": 286.6,
-                "mean_meters": 34.6,
-                "median_meters": 12.0,
-                "std_dev_meters": 50.7
-            },
-            "street_bearing_distribution": {
-                "mean_degrees": 163.3,
-                "std_dev_degrees": 101.5
-            },
-            "ninety_degree_intersection_ratio": 0.0,
-            "bearing_entropy": 2.056
-        }
+  "network_metrics": {
+    "basic_metrics": {
+      "total_nodes": 777,
+      "total_street_segments": 2313,
+      "total_intersections": 0,
+      "total_dead_ends": 41,
+      "total_street_length_meters": 80044.7
     },
-    "poi_metrics": {
-        "absolute_counts": {
-            "total_points_of_interest": 1076,
-            "counts_by_category": {
-                "total_restaurant_places": {
-                    "count": 173,
-                    "percentage": 16.1
-                }
-                // ... 40+ categories
-            }
-        },
-        "density_metrics": {
-            "points_of_interest_per_sqkm": 1370.700637,
-            "density_by_category": {
-                "restaurant_places_per_sqkm": 220.382166,
-                "cafe_places_per_sqkm": 94.267516
-                // ... per-category densities
-            }
-        },
-        "distribution_metrics": {
-            "unique_category_count": 42,
-            "diversity_metrics": {
-                "shannon_diversity_index": 2.245,
-                "simpson_diversity_index": 0.79,
-                "category_evenness": 0.601
-            },
-            "spatial_distribution": {
-                "pattern_interpretation": "clustered"
-            }
-        }
+    "density_metrics": {
+      "intersections_per_sqkm": 0.0,
+      "street_length_per_sqkm": 101.916091
     },
-    "units": {
-        "area": "square_meters",
-        "length": "meters", 
-        "density": "per_square_kilometer"
+    "connectivity_metrics": {
+      "streets_to_nodes_ratio": 1.488417,
+      "average_connections_per_node": {
+        "value": 3.589,
+        "confidence_interval_95": {
+          "lower": 3.536,
+          "upper": 3.643
+        }
+      }
+    },
+    "street_pattern_metrics": {
+      "street_segment_length_distribution": {
+        "minimum_meters": 0.5,
+        "maximum_meters": 286.6,
+        "mean_meters": 34.6,
+        "median_meters": 12.0,
+        "std_dev_meters": 50.7
+      },
+      "street_bearing_distribution": {
+        "mean_degrees": 163.3,
+        "std_dev_degrees": 101.5
+      },
+      "ninety_degree_intersection_ratio": 0.0,
+      "bearing_entropy": 2.056
     }
+  },
+  "poi_metrics": {
+    "absolute_counts": {
+      "total_points_of_interest": 1076,
+      "counts_by_category": {
+        "total_restaurant_places": {
+          "count": 173,
+          "percentage": 16.1
+        },
+        "total_fast_food_places": {
+          "count": 77,
+          "percentage": 7.2
+        },
+        "total_cafe_places": {
+          "count": 74,
+          "percentage": 6.9
+        },
+        "total_bicycle_parking_places": {
+          "count": 71,
+          "percentage": 6.6
+        },
+        "total_bench_places": {
+          "count": 27,
+          "percentage": 2.5
+        },
+        "total_bar_places": {
+          "count": 26,
+          "percentage": 2.4
+        },
+        "total_bank_places": {
+          "count": 24,
+          "percentage": 2.2
+        },
+        "total_pub_places": {
+          "count": 19,
+          "percentage": 1.8
+        },
+        "total_bicycle_rental_places": {
+          "count": 15,
+          "percentage": 1.4
+        },
+        "total_theatre_places": {
+          "count": 12,
+          "percentage": 1.1
+        },
+        "total_pharmacy_places": {
+          "count": 6,
+          "percentage": 0.6
+        },
+        "total_atm_places": {
+          "count": 4,
+          "percentage": 0.4
+        }
+      }
+    },
+    "density_metrics": {
+      "points_of_interest_per_sqkm": 1370.700637,
+      "density_by_category": {
+        "restaurant_places_per_sqkm": 220.382166,
+        "fast_food_places_per_sqkm": 98.089172,
+        "cafe_places_per_sqkm": 94.267516,
+        "bicycle_parking_places_per_sqkm": 90.44586,
+        "bank_places_per_sqkm": 30.573248,
+        "theatre_places_per_sqkm": 15.286624,
+        "pharmacy_places_per_sqkm": 7.643312
+      }
+    },
+    "distribution_metrics": {
+      "unique_category_count": 42,
+      "largest_category": {
+        "name": "restaurant",
+        "count": 173,
+        "percentage": 16.1
+      },
+      "diversity_metrics": {
+        "shannon_diversity_index": 2.245,
+        "simpson_diversity_index": 0.79,
+        "category_evenness": 0.601
+      },
+      "spatial_distribution": {
+        "mean_nearest_neighbor_distance_meters": 45.2,
+        "nearest_neighbor_distance_std_meters": 28.7,
+        "r_statistic": 0.68,
+        "pattern_interpretation": "clustered"
+      }
+    }
+  }
 }
+```
+
+### 🔍 **Analysis Results**
+
+| **Location Characteristics** | **Value** | **Interpretation** |
+|---------------------------|-----------|-------------------|
+| 🏙️ **POI Density** | 1,371 per km² | Ultra-dense location (rural areas: <10) |
+| 🍽️ **Food Scene** | 324 establishments | Dining powerhouse in 500m radius |
+| 🚲 **Transit Access** | 86 bike facilities | Sustainable transport infrastructure |
+| 🏛️ **Entertainment** | 12 theaters + 38 venues | Major entertainment district |
+| 🏪 **Financial Services** | 24 banks + 4 ATMs | Active commercial hub |
+
+| **Network Intelligence** | **Value** | **Interpretation** |
+|--------------------------|-----------|-------------------|
+| 🚶 **Walkability** | 3.59 connections/node | High pedestrian connectivity |
+| 🗺️ **Street Pattern** | 2.056 bearing entropy | Organized grid-like layout |
+| 🛣️ **Network Density** | 101.9 km/km² | Dense street network |
+
+| **Spatial Intelligence** | **Value** | **Use Case** |
+|--------------------------|-----------|--------------|
+| 📊 **Shannon Diversity** | 2.245 | High variety → Rich ML features |
+| 📈 **Simpson Diversity** | 0.79 | Robust POI mix → Stable predictions |
+| 🎯 **Clustering Pattern** | R = 0.68 | Distinct activity zones → Zoning analysis |
+
+> **Perfect for:** Price prediction models, accessibility scoring, urban planning analysis
+
+## 🎯 Key Features
+
+### **Rich POI Analysis** *(Points of Interest)*
+- **40+ categories**: restaurants, hospitals, schools, transit, entertainment
+- **Density metrics**: POIs per square kilometer by category
+- **Diversity indices**: 
+  - *Shannon diversity*: Measures variety and evenness (higher = more diverse)
+  - *Simpson diversity*: Probability two random POIs are different types
+- **Spatial patterns**: clustered, dispersed, or random POI distributions
+
+### **Street Network Insights**
+- **Connectivity**: average connections per intersection
+- **Total length**: meters of streets within radius
+- **Segment patterns**: distribution of street segment lengths
+- **Bearing analysis**: street orientation entropy and grid patterns
+
+### **Progress Tracking**
+| **Mode** | **Code** | **Use Case** |
+|----------|----------|--------------|
+| **Standard** | `show_progress=True, progress_detail='normal'` | General use with progress bars |
+| **Verbose** | `show_progress=True, progress_detail='verbose'` | Detailed debugging information |
+| **Silent** | `show_progress=False` | Batch processing, production |
+
+```python
+# Example: Verbose progress tracking
+features = features_from_location(location, show_progress=True, progress_detail='verbose')
 ```
 
 ## 🔬 Scientific Applications
 
-### Urban Planning Research
+**Geospatial Research:**
 ```python
 # Compare neighborhood walkability
 locations = [
-    {'name': 'Downtown', 'lat': 40.7580, 'lon': -73.9855},
-    {'name': 'Residential', 'lat': 40.7829, 'lon': -73.9654}
+    {'latitude': 40.7580, 'longitude': -73.9855, 'radius_meters': 800},  # Times Square
+    {'latitude': 40.7829, 'longitude': -73.9654, 'radius_meters': 800}   # Central Park
 ]
 
 for loc in locations:
     features = features_from_location(loc)
-    connectivity = features['network_metrics']['connectivity_metrics']
-    poi_density = features['poi_metrics']['density_metrics']
-    
-    print(f"{loc['name']} Walkability Score:")
-    print(f"  Connectivity: {connectivity['average_connections_per_node']['value']:.2f}")
-    print(f"  POI Density: {poi_density['points_of_interest_per_sqkm']:.0f} per km²")
+    walkability_score = (
+        features['poi_metrics']['density_metrics']['points_of_interest_per_sqkm'] * 0.4 +
+        features['network_metrics']['connectivity_metrics']['average_connections_per_node']['value'] * 100 * 0.6
+    )
+    print(f"Walkability score: {walkability_score:.1f}")
 ```
 
-### Accessibility Analysis
+**ML Feature Engineering:**
 ```python
-# Analyze service accessibility
-features = features_from_location({'lat': 40.7527, 'lon': -73.9772, 'radius_meters': 800})
-
-essential_services = [
-    'restaurant_places_per_sqkm',
-    'bank_places_per_sqkm', 
-    'pharmacy_places_per_sqkm'
-]
-
-for service in essential_services:
-    density = features['poi_metrics']['density_metrics'][service]
-    print(f"{service}: {density:.1f} per km²")
-```
-
-### Comparative Urban Studies
-```python
-# Multi-city comparison
-cities = [
-    {'name': 'NYC Times Square', 'lat': 40.7580, 'lon': -73.9855},
-    {'name': 'London Piccadilly', 'lat': 51.5100, 'lon': -0.1347},
-    {'name': 'Tokyo Shibuya', 'lat': 35.6598, 'lon': 139.7006}
-]
-
-results = {}
-for city in cities:
-    features = features_from_location(city)
-    results[city['name']] = {
-        'street_density': features['network_metrics']['density_metrics']['street_length_per_sqkm'],
-        'poi_diversity': features['poi_metrics']['distribution_metrics']['diversity_metrics']['shannon_diversity_index']
-    }
-```
-
-## 🛠️ Advanced Usage
-
-### Batch Processing
-```python
+# Generate features for price prediction model
 import pandas as pd
 
-# Process multiple locations
-locations_df = pd.read_csv('study_locations.csv')
-results = []
+properties = pd.read_csv('real_estate.csv')  # lat, lon, price columns
+features_list = []
 
-for _, row in locations_df.iterrows():
-    try:
-        features = features_from_location({
-            'latitude': row['lat'],
-            'longitude': row['lon'], 
-            'radius_meters': row['radius']
-        })
-        
-        results.append({
-            'location_id': row['id'],
-            'poi_count': features['poi_metrics']['absolute_counts']['total_points_of_interest'],
-            'street_length': features['network_metrics']['basic_metrics']['total_street_length_meters'],
-            'connectivity': features['network_metrics']['connectivity_metrics']['average_connections_per_node']['value']
-        })
-    except Exception as e:
-        print(f"Error processing {row['id']}: {e}")
+for _, row in properties.iterrows():
+    location_features = features_from_location({
+        'latitude': row['lat'],
+        'longitude': row['lon'], 
+        'radius_meters': 1000
+    }, show_progress=False)
+    
+    # Extract key features for ML
+    features_list.append({
+        'restaurant_density': location_features['poi_metrics']['density_metrics']['restaurant_places_per_sqkm'],
+        'transit_access': location_features['poi_metrics']['absolute_counts']['counts_by_category'].get('total_bus_station_places', {}).get('count', 0),
+        'street_connectivity': location_features['network_metrics']['connectivity_metrics']['average_connections_per_node']['value'],
+        'location_diversity': location_features['poi_metrics']['distribution_metrics']['diversity_metrics']['shannon_diversity_index']
+    })
 
-results_df = pd.DataFrame(results)
+# Add to your ML pipeline
+features_df = pd.DataFrame(features_list)
+properties = pd.concat([properties, features_df], axis=1)
 ```
 
-### Statistical Analysis
+## 🛠 Advanced Usage
+
+### **Batch Processing**
 ```python
-# Extract confidence intervals and statistical measures
-features = features_from_location({'lat': 40.7580, 'lon': -73.9855, 'radius_meters': 500})
+# Process multiple locations efficiently
+locations = [
+    {'latitude': 40.7580, 'longitude': -73.9855, 'radius_meters': 500},
+    {'latitude': 40.7829, 'longitude': -73.9654, 'radius_meters': 500},
+    {'latitude': 40.7527, 'longitude': -73.9772, 'radius_meters': 500}
+]
 
-# Network connectivity with confidence intervals
-conn = features['network_metrics']['connectivity_metrics']['average_connections_per_node']
-print(f"Average connections: {conn['value']:.3f}")
-print(f"95% CI: [{conn['confidence_interval_95']['lower']:.3f}, {conn['confidence_interval_95']['upper']:.3f}]")
-
-# POI category analysis with exact counts
-categories = features['poi_metrics']['absolute_counts']['counts_by_category']
-for category, data in categories.items():
-    print(f"{category}: {data['count']} ({data['percentage']:.1f}%)")
+results = features_from_location(locations, show_progress=True)
 ```
 
-## 📋 Standards & Quality
+### **Command Line Interface**
+```bash
+# Single location analysis
+geofeaturekit analyze 40.7580 -73.9855 --radius 500 --verbose
 
-**Metric Standards:** All metrics follow SI (International System of Units) standards:
-- **Length**: meters (m) • **Area**: square meters (m²) • **Density**: per square kilometer (per km²)
-- **Angles**: degrees (°) • **Statistical measures**: Include confidence intervals where statistically appropriate
+# Batch analysis from file
+geofeaturekit batch-analyze locations.json --radius 1000 --output results/
+```
 
-**Testing & Quality:**
-- Comprehensive test suite with property-based testing
-- Real-world validation on major urban areas
-- Statistical rigor with confidence intervals for estimated metrics only
-- Robust error handling and performance optimization
+### **Custom Radius Analysis**
+```python
+# Compare different scales
+radii = [200, 500, 1000, 2000]  # meters
+
+for radius in radii:
+    features = features_from_location({
+        'latitude': 40.7580,
+        'longitude': -73.9855, 
+        'radius_meters': radius
+    })
+    
+    poi_count = features['poi_metrics']['absolute_counts']['total_points_of_interest']
+    print(f"{radius}m radius: {poi_count} POIs")
+```
+
+## 📖 Key Terms
+
+| **Term** | **Definition** | **Scale** |
+|----------|----------------|-----------|
+| **POI** | Points of Interest (restaurants, hospitals, schools, ATMs) | Count |
+| **Shannon Diversity** | Measures variety and evenness of POI types | 0-4+ (higher = more diverse) |
+| **Simpson Diversity** | Probability two random POIs are different types | 0-1 (higher = more diverse) |
+| **Bearing Entropy** | Street grid organization measure | 0-4+ (lower = more organized) |
+| **R-statistic** | Spatial clustering pattern | 0-2.1 (<1 clustered, ~1 random, >1 dispersed) |
+| **Connectivity** | Average connections per street intersection | 2-8+ (higher = more walkable) |
+
+## 📊 Output Structure
+
+GeoFeatureKit returns a comprehensive dictionary with four main sections:
+
+```python
+{
+    'network_metrics': {
+        'basic_metrics': {...},      # Node/edge counts, total length
+        'density_metrics': {...},    # Per-km² measurements  
+        'connectivity_metrics': {...}, # Connection patterns
+        'street_pattern_metrics': {...} # Orientation, segment analysis
+    },
+    'poi_metrics': {
+        'absolute_counts': {...},    # Raw POI counts by category
+        'density_metrics': {...},    # POIs per km² by category
+        'distribution_metrics': {...} # Diversity and spatial patterns
+    },
+    'units': {
+        'area': 'square_meters',
+        'length': 'meters', 
+        'density': 'per_square_kilometer'
+    }
+}
+```
+
+## 🌍 Standards & Quality
+
+- **SI Units**: All measurements in meters, square kilometers
+- **Confidence Intervals**: Statistical uncertainty for network metrics
+- **Reproducible**: Deterministic results with caching
+- **Validated**: Comprehensive test suite with property-based testing
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`tox -e py310`)
-4. Commit changes (`git commit -m 'Add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **OpenStreetMap**: For providing the foundational geographic data
-- **OSMnx**: For excellent OpenStreetMap network analysis tools
-- **GeoPandas**: For robust geospatial data processing
-- **SciPy ecosystem**: For statistical analysis capabilities
+Built with [OSMnx](https://github.com/gboeing/osmnx), [NetworkX](https://github.com/networkx/networkx), and [GeoPandas](https://github.com/geopandas/geopandas). Data from [OpenStreetMap](https://www.openstreetmap.org/) contributors.
 
 ## 📚 Citation
 
 If you use GeoFeatureKit in your research, please cite:
 
 ```bibtex
-@software{geofeaturekit2024,
-    title={GeoFeatureKit: Urban Feature Extraction and Analysis},
-    author={Your Name},
-    year={2024},
+@software{geofeaturekit2025,
+    title={GeoFeatureKit: Geospatial Feature Extraction and Analysis},
+    author={Alexander Li},
+    year={2025},
     url={https://github.com/lihangalex/geofeaturekit}
 }
 ```
 
 ---
 
-**Ready to analyze your city? Start with `pip install geofeaturekit` and explore urban patterns like never before! 🏙️** 
+**Ready to analyze any location? Start with `pip install geofeaturekit` and explore geospatial patterns like never before! 🌍** 

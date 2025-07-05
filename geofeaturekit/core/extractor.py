@@ -11,18 +11,22 @@ from ..utils.poi import download_pois
 from ..utils.network_advanced import download_land_use
 from ..utils.area import calculate_area_hectares
 from ..utils.formatting import round_float, AREA_DECIMALS
+from ..utils.progress import EnhancedProgressTracker, BatchProgressTracker
 from ..exceptions.errors import GeoFeatureKitError
 from .metrics import calculate_all_metrics
 
 class UrbanFeatureExtractor:
     """Extract urban features from locations."""
     
-    def __init__(self, radius_meters: int = 500, use_cache: bool = True):
+    def __init__(self, radius_meters: int = 500, use_cache: bool = True, 
+                 show_progress: bool = True, progress_detail: str = 'normal'):
         """Initialize extractor.
         
         Args:
             radius_meters: Analysis radius in meters
             use_cache: Whether to cache downloaded data
+            show_progress: Whether to show progress bars
+            progress_detail: Level of progress detail ('minimal', 'normal', 'verbose')
             
         Raises:
             GeoFeatureKitError: If radius is invalid
@@ -32,6 +36,8 @@ class UrbanFeatureExtractor:
             
         self.radius_meters = radius_meters
         self.use_cache = use_cache
+        self.show_progress = show_progress
+        self.progress_detail = progress_detail
         self.cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cache')
         self._cache = {}
         
@@ -97,24 +103,47 @@ class UrbanFeatureExtractor:
         if cached_data is not None:
             return cached_data
         
+        # Initialize progress tracker
+        location_desc = f"({latitude:.4f}, {longitude:.4f})"
+        progress = EnhancedProgressTracker(
+            show_progress=self.show_progress,
+            detail_level=self.progress_detail
+        )
+        
         try:
-            # Download data
-            G = download_network(latitude, longitude, radius)
-            pois = download_pois(latitude, longitude, radius)
-            land_use = download_land_use(latitude, longitude, radius)
+            progress.start_extraction(location_desc)
             
-            # Calculate area in square meters
-            area_sqm = calculate_area_hectares(radius) * 10000
+            # Phase 1: Data Download (70% of total time)
+            with progress.phase('download', 'Downloading Data'):
+                progress.update_phase_progress(10, "Downloading street network...")
+                G = download_network(latitude, longitude, radius)
+                
+                progress.update_phase_progress(50, "Downloading points of interest...")
+                pois = download_pois(latitude, longitude, radius)
+                
+                progress.update_phase_progress(100, "Downloading land use data...")
+                land_use = download_land_use(latitude, longitude, radius)
             
-            # Use the proper metrics calculation function
-            metrics = calculate_all_metrics(G, pois, area_sqm)
+            # Phase 2: Calculate Metrics (25% of total time)
+            with progress.phase('calculate', 'Calculating Metrics'):
+                progress.update_phase_progress(20, "Calculating area...")
+                area_sqm = calculate_area_hectares(radius) * 10000
+                
+                progress.update_phase_progress(100, "Computing urban metrics...")
+                metrics = calculate_all_metrics(G, pois, area_sqm)
             
-            # Save to cache
-            self._save_to_cache(cache_key, metrics)
+            # Phase 3: Format Results (5% of total time)
+            with progress.phase('format', 'Finalizing Results'):
+                progress.update_phase_progress(50, "Formatting data...")
+                # Save to cache
+                self._save_to_cache(cache_key, metrics)
+                progress.update_phase_progress(100, "Complete")
             
+            progress.complete_extraction()
             return metrics
             
         except Exception as e:
+            progress.error(f"Failed to extract features: {str(e)}")
             raise GeoFeatureKitError(f"Failed to extract features: {str(e)}")
     
     def features_from_location_batch(
@@ -137,12 +166,35 @@ class UrbanFeatureExtractor:
         results = []
         errors = []
         
+        # Initialize batch progress tracker
+        batch_progress = BatchProgressTracker(
+            total_locations=len(locations),
+            show_progress=self.show_progress
+        )
+        
+        batch_progress.start_batch()
+        
         for i, (lat, lon) in enumerate(locations):
+            location_desc = f"({lat:.4f}, {lon:.4f})"
+            batch_progress.start_location(location_desc)
+            
             try:
+                # Temporarily disable individual progress for batch processing
+                original_show_progress = self.show_progress
+                self.show_progress = False
+                
                 result = self.features_from_location(lat, lon, radius_meters)
                 results.append(result)
+                batch_progress.complete_location(success=True)
+                
             except Exception as e:
                 errors.append(f"Location {i} ({lat}, {lon}): {str(e)}")
+                batch_progress.complete_location(success=False)
+            finally:
+                # Restore original progress setting
+                self.show_progress = original_show_progress
+        
+        batch_progress.complete_batch()
         
         if errors:
             warnings.warn(f"Errors occurred during batch processing:\n" + "\n".join(errors))

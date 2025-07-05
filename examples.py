@@ -35,7 +35,8 @@ def main():
             results[loc['name']] = features_from_location({
                 'latitude': loc['latitude'],
                 'longitude': loc['longitude'],
-                'radius_meters': loc['radius_meters']
+                'radius_meters': loc['radius_meters'],
+                'show_progress': True,
             })
         except Exception as e:
             results[loc['name']] = {'error': str(e)}
