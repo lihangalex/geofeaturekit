@@ -68,6 +68,138 @@ poi_metrics = features['metrics']['poi_metrics']
 land_use = features['metrics']['land_use_metrics']
 ```
 
+## Example Analysis: Times Square
+
+Let's analyze Times Square, one of New York City's most iconic locations:
+
+```python
+from geofeaturekit import features_from_location
+
+# Analyze Times Square
+features = features_from_location(
+    latitude=40.758,
+    longitude=-73.9855,
+    radius_meters=500,  # 500m radius
+    network_type='all'  # Include all street types
+)
+
+# The results include comprehensive metrics:
+{
+    "metadata": {
+        "location": {
+            "latitude": 40.758,
+            "longitude": -73.9855
+        },
+        "radius_meters": 500,
+        "network_type": "all",
+        "area_sqm": 785398.2  # π * radius² = area of analysis
+    },
+    "metrics": {
+        "network_metrics": {
+            "basic_metrics": {
+                "total_street_length_meters": 80044.7,  # Dense street network
+                "total_intersections": 731,
+                "total_dead_ends": 0,  # Well-connected streets
+                "total_nodes": 777,
+                "total_street_segments": 2313
+            },
+            "density_metrics": {
+                "intersections_per_sqm": 0.000931,  # High intersection density
+                "street_length_per_sqm": 0.101916,
+                "nodes_per_sqm": 0.000989,
+                "units": "per_square_meter"
+            },
+            "connectivity_metrics": {
+                "average_connections_per_node": 3.411,  # Good connectivity
+                "number_of_disconnected_networks": 1,  # Single connected network
+                "number_of_street_loops": 1537,
+                "streets_to_nodes_ratio": 2.977
+            }
+        },
+        "poi_metrics": {
+            "absolute_counts": {
+                "total_points_of_interest": 1076,  # Very high POI count
+                "counts_by_category": {
+                    "total_restaurant_places": 173,
+                    "total_fast_food_places": 77,
+                    "total_cafe_places": 74,
+                    "total_bicycle_parking_places": 71,
+                    "total_bank_places": 24,
+                    # ... more categories
+                }
+            },
+            "density_metrics": {
+                "points_of_interest_per_sqm": 0.00137,  # High POI density
+                "density_by_category": {
+                    "restaurant_places_per_sqm": 0.00022,
+                    "fast_food_places_per_sqm": 0.000098,
+                    "cafe_places_per_sqm": 0.000094
+                }
+            },
+            "distribution_metrics": {
+                "unique_category_count": 42,  # Diverse amenities
+                "largest_category_count": 439,
+                "largest_category_name": "unknown",
+                "largest_category_count_percent": 40.8
+            }
+        },
+        "pedestrian_network": {
+            "intersection_spacing_meters": {
+                "minimum": 0.8,
+                "maximum": 286.6,
+                "median": 12.1,  # Short blocks, walkable
+                "standard_deviation": 51.5
+            },
+            "dead_end_street_count": 0,
+            "total_dead_end_street_length_meters": 0.0
+        },
+        "land_use_metrics": {
+            "area_measurements": {
+                "total_area_sqm": 56.6,
+                "commercial_area_sqm": 53.1,  # Predominantly commercial
+                "open_space_area_sqm": 3.6
+            }
+        },
+        "data_quality_metrics": {
+            "data_completeness_percentages": {
+                "percent_network_data_complete": 100.0,
+                "percent_poi_data_complete": 100.0,
+                "percent_land_use_data_complete": 100.0
+            }
+        }
+    }
+}
+```
+
+This example demonstrates several key features of Times Square's urban environment:
+
+1. **Dense Street Network**:
+   - 80km total street length in just 0.785 km² (500m radius)
+   - 731 intersections with no dead ends
+   - High connectivity (3.4 connections per node)
+
+2. **Rich Point of Interest Density**:
+   - 1,076 total POIs (1.37 POIs per 1000 m²)
+   - 42 unique categories of amenities
+   - High concentration of restaurants (173), cafes (74), and services
+
+3. **Pedestrian-Friendly Design**:
+   - Median intersection spacing of 12.1m
+   - No dead-end streets
+   - Dense network of pedestrian paths
+
+4. **Commercial District**:
+   - 93.8% commercial area (53.1/56.6 m²)
+   - High concentration of retail and services
+   - Mixed-use urban environment
+
+5. **Data Quality**:
+   - 100% complete network data
+   - High reliability scores
+   - Comprehensive POI coverage
+
+This analysis reveals Times Square as a dense, highly connected commercial district with exceptional pedestrian accessibility and a diverse mix of amenities.
+
 ## Example Output
 
 Here's a sample of what you'll get (truncated for readability):
