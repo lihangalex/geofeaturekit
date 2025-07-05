@@ -1,0 +1,105 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0, v0.2.4, etc.
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions
+    
+    - name: Test with tox
+      run: tox
+
+  publish:
+    needs: test  # Only run if all tests pass
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+    
+    - name: Verify version tag matches setup.py
+      run: |
+        # Extract version from tag (remove 'v' prefix)
+        TAG_VERSION=${GITHUB_REF#refs/tags/v}
+        echo "Tag version: $TAG_VERSION"
+        
+        # Extract version from setup.py
+        SETUP_VERSION=$(python -c "import re; content=open('setup.py').read(); print(re.search(r'version=\"([^\"]+)\"', content).group(1))")
+        echo "Setup.py version: $SETUP_VERSION"
+        
+        # Compare versions
+        if [ "$TAG_VERSION" != "$SETUP_VERSION" ]; then
+          echo "❌ Version mismatch! Tag: $TAG_VERSION, setup.py: $SETUP_VERSION"
+          exit 1
+        fi
+        echo "✅ Version tag matches setup.py"
+    
+    - name: Build package
+      run: python -m build
+    
+    - name: Check package contents
+      run: |
+        echo "📦 Package contents:"
+        ls -la dist/
+        echo "📋 Package metadata:"
+        python -m twine check dist/*
+    
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: |
+        echo "🚀 Publishing to PyPI..."
+        python -m twine upload dist/*
+        echo "✅ Successfully published to PyPI!"
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+        generate_release_notes: true
+        body: |
+          ## 🎉 Release ${{ github.ref_name }}
+          
+          This release has been automatically published to PyPI.
+          
+          **Install with:**
+          ```bash
+          pip install geofeaturekit==${{ github.ref_name }}
+          ```
+          
+          **Or upgrade:**
+          ```bash
+          pip install --upgrade geofeaturekit
+          ```
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
