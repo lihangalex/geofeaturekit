@@ -25,6 +25,15 @@
 | 🏙️ **Urban Planning** | Accessibility research, zoning analysis | Spatial patterns, connectivity measures |
 | 🧠 **AI/ML** | Neural networks, spatial clustering | Environmental context, amenity features |
 
+## 🔧 Recent Updates (v0.2.4)
+
+✅ **Fixed spatial distribution bug**: Mean nearest neighbor distance now correctly calculates distances to ALL other points, not just subsequent ones  
+✅ **Improved coordinate detection**: Better handling of meter vs degree coordinate systems  
+✅ **Enhanced precision**: Cleaner formatting with appropriate decimal places  
+✅ **Fixed network metrics**: Corrected dead end and intersection counting logic  
+✅ **Robust testing**: Replaced flaky tests with deterministic grid-based validation  
+✅ **Python 3.9+ compatibility**: Full support across Python versions
+
 ## ✨ Why GeoFeatureKit?
 
 | **Advantage** | **Benefit** |
