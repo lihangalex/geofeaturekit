@@ -10,8 +10,8 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="geofeaturekit",
-    version="0.1.1",
-    description="A Python library for extracting and analyzing urban features from OpenStreetMap data",
+    version="0.1.2",
+    description="Transform raw coordinates into actionable geospatial features – street networks, POI data, and spatial metrics – using open data with zero setup. Perfect for ML engineers and data scientists building location-based models.",
     author="Alexander Li",
     author_email="lihangalex@gmail.com",
     long_description=long_description,
