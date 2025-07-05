@@ -31,13 +31,13 @@ GeoFeatureKit empowers urban planners, researchers, and developers to analyze ci
 ## 📦 Installation
 
 ```bash
-# Install from PyPI (when available)
-pip install geofeaturekit
-
-# Or clone for development
+# Clone for development/use
 git clone https://github.com/lihangalex/geofeaturekit.git
 cd geofeaturekit
 pip install -e .
+
+# Or install directly from GitHub
+pip install git+https://github.com/lihangalex/geofeaturekit.git
 ```
 
 ### Requirements
