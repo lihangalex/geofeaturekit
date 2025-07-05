@@ -145,38 +145,64 @@ class TestPOIProperties:
 class TestScaleProperties:
     """Tests for scale-invariant properties."""
     
-    @given(
-        st.integers(min_value=4, max_value=25),
-        st.integers(min_value=10, max_value=100),
-        st.floats(min_value=100, max_value=2000)
-    )
-    def test_scale_invariance(self, num_nodes, num_pois, radius):
-        """Test that certain metrics are invariant under scaling."""
-        # Create two datasets at different scales
+    def test_scale_invariance_deterministic(self):
+        """Test scale invariance with deterministic grid networks."""
+        # Use deterministic 3x3 grids at different scales
         scale_factor = 2.0
         
-        G1 = create_test_graph(num_nodes, radius_meters=radius)
-        G2 = create_test_graph(num_nodes, radius_meters=radius * scale_factor)
-        
-        pois1 = create_test_pois(num_pois, radius_meters=radius)
-        pois2 = create_test_pois(num_pois, radius_meters=radius * scale_factor)
+        # Create identical grid topologies at different scales
+        G1 = create_test_graph(9, grid_layout=True, radius_meters=500)    # 3x3 grid, 500m radius
+        G2 = create_test_graph(9, grid_layout=True, radius_meters=1000)   # 3x3 grid, 1000m radius (2x scale)
         
         metrics1 = calculate_network_metrics(G1)
         metrics2 = calculate_network_metrics(G2)
         
-        # Topological properties should be scale-invariant
+        # Topological properties MUST be identical for same grid layout
+        assert metrics1['basic_metrics']['total_nodes'] == metrics2['basic_metrics']['total_nodes']
+        assert metrics1['basic_metrics']['total_street_segments'] == metrics2['basic_metrics']['total_street_segments']
+        assert metrics1['basic_metrics']['total_intersections'] == metrics2['basic_metrics']['total_intersections']
+        assert metrics1['basic_metrics']['total_dead_ends'] == metrics2['basic_metrics']['total_dead_ends']
+        
+        # Connectivity ratios MUST be identical (topology-dependent only)
+        assert abs(metrics1['connectivity_metrics']['streets_to_nodes_ratio'] - 
+                  metrics2['connectivity_metrics']['streets_to_nodes_ratio']) < 0.001
+        
+        # Network pattern metrics should be identical for same grid
+        ninety_ratio1 = metrics1['street_pattern_metrics']['ninety_degree_intersection_ratio']
+        ninety_ratio2 = metrics2['street_pattern_metrics']['ninety_degree_intersection_ratio']
+        assert abs(ninety_ratio1 - ninety_ratio2) < 0.001  # Grid patterns should be identical
+        
+        # Length metrics should scale linearly with radius
+        length_ratio = metrics2['basic_metrics']['total_street_length_meters'] / \
+                      metrics1['basic_metrics']['total_street_length_meters']
+        assert abs(length_ratio - scale_factor) < 0.01  # Length scales with radius
+        
+        # Density metrics should scale with area (radius²)
+        area_scale_factor = scale_factor ** 2
+        if metrics1['density_metrics']['intersections_per_sqkm'] > 0:
+            density_ratio = metrics1['density_metrics']['intersections_per_sqkm'] / \
+                           metrics2['density_metrics']['intersections_per_sqkm']
+            assert abs(density_ratio - area_scale_factor) < 0.01  # Density scales with area
+    
+    @given(st.sampled_from([9, 16, 25]))  # Perfect squares for grids (3x3, 4x4, 5x5)
+    def test_grid_scaling_properties(self, num_nodes):
+        """Test that grid networks have predictable scaling properties."""
+        # Test with different grid sizes but same scaling factor
+        scale_factor = 1.5
+        
+        G1 = create_test_graph(num_nodes, grid_layout=True, radius_meters=400)
+        G2 = create_test_graph(num_nodes, grid_layout=True, radius_meters=600)  # 1.5x scale
+        
+        metrics1 = calculate_network_metrics(G1)
+        metrics2 = calculate_network_metrics(G2)
+        
+        # All topological properties must be identical
         assert metrics1['basic_metrics']['total_nodes'] == metrics2['basic_metrics']['total_nodes']
         assert metrics1['basic_metrics']['total_intersections'] == metrics2['basic_metrics']['total_intersections']
         
-        # Density metrics should scale with area
-        area_ratio = scale_factor ** 2
-        
-        # Only test density ratios if both values are non-zero
-        if (metrics1['density_metrics']['intersections_per_sqkm'] > 0 and 
-            metrics2['density_metrics']['intersections_per_sqkm'] > 0):
-            density_ratio = metrics1['density_metrics']['intersections_per_sqkm'] / \
-                           metrics2['density_metrics']['intersections_per_sqkm']
-            assert abs(density_ratio - area_ratio) < 0.25  # Allow for geometric variability in random graphs
+        # Grid patterns should be identical regardless of scale
+        assert metrics1['street_pattern_metrics']['ninety_degree_intersection_ratio'] == \
+               metrics2['street_pattern_metrics']['ninety_degree_intersection_ratio']
 
 def test_numerical_stability():
     """Test numerical stability with extreme values."""
