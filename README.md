@@ -1,6 +1,7 @@
 # GeoFeatureKit
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI version](https://badge.fury.io/py/geofeaturekit.svg)](https://badge.fury.io/py/geofeaturekit)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Tests](https://img.shields.io/badge/tests-passing-green.svg)](https://github.com/lihangalex/geofeaturekit)
 
@@ -31,17 +32,20 @@ GeoFeatureKit empowers urban planners, researchers, and developers to analyze ci
 ## 📦 Installation
 
 ```bash
-# Clone for development/use
+# Install from PyPI
+pip install geofeaturekit
+
+# Or install directly from GitHub for latest development version
+pip install git+https://github.com/lihangalex/geofeaturekit.git
+
+# For development
 git clone https://github.com/lihangalex/geofeaturekit.git
 cd geofeaturekit
 pip install -e .
-
-# Or install directly from GitHub
-pip install git+https://github.com/lihangalex/geofeaturekit.git
 ```
 
 ### Requirements
-- Python 3.10+
+- Python 3.8+
 - NumPy, SciPy for statistical analysis
 - GeoPandas, OSMnx for geospatial processing
 - NetworkX for network analysis
