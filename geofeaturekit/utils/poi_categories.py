@@ -5,13 +5,13 @@ from typing import Dict, Set, List, Union, Any, Optional
 # Define meaningful POI categories with their OSM tag patterns
 POI_CATEGORIES: Dict[str, List[Dict[str, Set[str]]]] = {
     "dining": [
-        {"amenity": {"restaurant", "cafe", "fast_food", "bar", "pub"}},
-        {"shop": {"coffee"}}
+        {"amenity": {"restaurant", "cafe", "fast_food", "bar", "pub", "food_court", "ice_cream"}},
+        {"shop": {"coffee", "bakery", "confectionery", "deli", "butcher", "seafood", "alcohol", "beverages"}}
     ],
     
     "retail": [
-        {"shop": {"convenience", "supermarket", "mall", "department_store"}},
-        {"amenity": {"marketplace"}},
+        {"shop": {"convenience", "supermarket", "mall", "department_store", "clothes", "shoes", "electronics", "books", "gift", "jewelry", "toys"}},
+        {"amenity": {"marketplace", "vending_machine"}},
         {"building": {"retail", "commercial"}}
     ],
     
@@ -45,7 +45,14 @@ POI_CATEGORIES: Dict[str, List[Dict[str, Set[str]]]] = {
         {"public_transport": {"station", "stop_position", "platform"}},
         {"railway": {"station", "halt", "tram_stop", "subway_entrance"}},
         {"highway": {"bus_stop"}},
-        {"aeroway": {"aerodrome", "helipad"}}
+        {"aeroway": {"aerodrome", "helipad"}},
+        {"shop": {"bicycle", "car"}}
+    ],
+    
+    "bicycle_services": [
+        {"shop": {"bicycle"}},
+        {"amenity": {"bicycle_parking", "bicycle_rental", "bicycle_repair"}},
+        {"service": {"bicycle"}}
     ],
     
     "public_transit": [
@@ -92,9 +99,41 @@ POI_CATEGORIES: Dict[str, List[Dict[str, Set[str]]]] = {
     ],
     
     "services": [
-        {"shop": {"hairdresser", "laundry", "dry_cleaning"}},
-        {"amenity": {"post_office", "police", "fire_station"}},
-        {"office": {"insurance", "lawyer", "estate_agent"}}
+        {"shop": {"hairdresser", "laundry", "dry_cleaning", "beauty", "massage", "tattoo", "optician", "hearing_aids"}},
+        {"amenity": {"post_office", "police", "fire_station", "courier", "internet_cafe"}},
+        {"office": {"insurance", "lawyer", "estate_agent", "employment_agency", "tax_advisor", "travel_agent"}},
+        {"craft": {"tailor", "shoemaker", "photographer"}}
+    ],
+    
+    "childcare": [
+        {"amenity": {"childcare", "kindergarten", "nursery"}},
+        {"building": {"kindergarten"}},
+        {"shop": {"baby_goods"}}
+    ],
+    
+    "toilets_hygiene": [
+        {"amenity": {"toilets", "shower", "public_bath"}},
+        {"building": {"toilets"}},
+        {"shop": {"chemist", "perfumery", "hygiene"}}
+    ],
+    
+    "automotive": [
+        {"amenity": {"fuel", "charging_station", "car_wash", "car_repair"}},
+        {"shop": {"car", "car_repair", "car_parts", "tyres"}},
+        {"highway": {"services"}},
+        {"building": {"garage"}}
+    ],
+    
+    "animal_services": [
+        {"amenity": {"veterinary", "animal_shelter"}},
+        {"shop": {"pet", "pet_grooming"}},
+        {"healthcare": {"veterinary"}}
+    ],
+    
+    "workspace": [
+        {"amenity": {"coworking_space"}},
+        {"office": {"coworking", "company"}},
+        {"building": {"office"}}
     ],
     
     "utilities": [
@@ -127,6 +166,7 @@ CATEGORY_WEIGHTS: Dict[str, float] = {
     "culture": 1.2,             # Quality of life contributor
     "recreation": 1.2,          # Quality of life contributor
     "transportation": 1.3,      # Infrastructure importance
+    "bicycle_services": 1.3,    # Cycling infrastructure
     "public_transit": 1.4,      # High-value urban infrastructure
     "water_features": 1.1,      # Environmental value
     "green_infrastructure": 1.3, # Environmental & livability
@@ -134,6 +174,11 @@ CATEGORY_WEIGHTS: Dict[str, float] = {
     "financial": 0.8,           # Convenience service
     "accommodation": 0.7,       # Tourism/temporary use
     "services": 0.9,            # Support services
+    "childcare": 1.6,           # Critical for families
+    "toilets_hygiene": 1.4,     # Essential public amenity
+    "automotive": 1.0,          # Vehicle infrastructure
+    "animal_services": 0.9,     # Pet care services
+    "workspace": 1.1,           # Modern work infrastructure
     "utilities": 1.2,           # Critical infrastructure
     "safety_emergency": 1.5,    # Safety & security
     "natural": 1.1              # Environmental value

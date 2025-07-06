@@ -14,7 +14,7 @@
 **Output:** Comprehensive geospatial intelligence including:
 
 - **🚀 NEW: Multi-modal isochrone accessibility**: Walk, bike, and drive accessibility analysis with custom speeds
-- **17 Enhanced POI categories**: dining, retail, education, healthcare, culture, recreation, transportation, public transit, water features, green infrastructure, community, financial, accommodation, services, utilities, safety & emergency, and natural features
+- **23 Comprehensive POI categories**: dining, retail, education, healthcare, culture, recreation, transportation, bicycle services, public transit, water features, green infrastructure, community, financial, accommodation, services, childcare, toilets & hygiene, automotive, animal services, workspace, utilities, safety & emergency, and natural features
 - **Street network metrics**: connectivity, total street length, segment distributions, pattern entropy
 - **Spatial intelligence**: POI diversity indices (Shannon, Simpson) and clustering patterns
 
@@ -60,6 +60,12 @@
 | ⚡ **Utilities** | Power stations, water treatment | Critical infrastructure, urban systems |
 | 🚨 **Safety & Emergency** | Fire stations, police, hospitals | Emergency services, public safety |
 | 🌿 **Natural** | Forests, beaches, nature reserves | Natural environment, biodiversity |
+| 👶 **Childcare** | Nurseries, kindergartens, daycare | Family support, child development |
+| 🚻 **Toilets & Hygiene** | Public toilets, showers, chemists | Essential public amenities |
+| 🚗 **Automotive** | Gas stations, EV charging, car repair | Vehicle infrastructure & services |
+| 🐕 **Animal Services** | Veterinarians, pet shops, shelters | Pet care & animal welfare |
+| 💼 **Workspace** | Coworking spaces, offices | Modern work infrastructure |
+| 🚴 **Bicycle Services** | Bike shops, repairs, rentals | Cycling infrastructure support |
 
 ### 🚀 **Multi-Modal Isochrone Accessibility**
 
