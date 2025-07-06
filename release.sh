@@ -62,21 +62,18 @@ git commit -m "Bump version to $NEW_VERSION"
 echo "📤 Pushing to main branch..."
 git push origin main
 
-echo "🎉 Version bump completed!"
-echo "✅ Version $NEW_VERSION has been committed and pushed to main"
-echo ""
-echo "🚀 Next steps to publish:"
-echo "   1. Go to: https://github.com/lihangalex/geofeaturekit/actions"
-echo "   2. Click on 'Publish to PyPI' workflow"
-echo "   3. Click 'Run workflow' button"
-echo "   4. Enter version: $NEW_VERSION"
-echo "   5. Click 'Run workflow' to publish"
-echo ""
-echo "🔄 The workflow will then automatically:"
-echo "   - Verify version matches setup.py"
+# Create and push tag
+echo "🏷️ Creating and pushing tag v$NEW_VERSION..."
+git tag v$NEW_VERSION
+git push origin v$NEW_VERSION
+
+echo "🎉 Release process completed!"
+echo "✅ Version $NEW_VERSION has been tagged and pushed"
+echo "🔄 GitHub Actions will now automatically:"
+echo "   - Verify tag version matches setup.py"
 echo "   - Build the package"
 echo "   - Publish to PyPI"
-echo "   - Create git tag"
 echo "   - Create GitHub release"
 echo ""
+echo "🔗 Monitor progress at: https://github.com/lihangalex/geofeaturekit/actions"
 echo "📦 Package will be available at: https://pypi.org/project/geofeaturekit/$NEW_VERSION/" 
