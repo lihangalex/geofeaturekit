@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*.*.*'  # Trigger on version tags like v1.0.0, v0.2.4, etc.
 
+permissions:
+  contents: write  # Required for creating releases
+  id-token: write  # Required for trusted publishing (optional but recommended)
+
 jobs:
   test:
     runs-on: ubuntu-latest
