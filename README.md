@@ -13,6 +13,7 @@
 **Input:** Just latitude and longitude coordinates  
 **Output:** Comprehensive geospatial intelligence including:
 
+- **🚀 NEW: Multi-modal isochrone accessibility**: Walk, bike, and drive accessibility analysis with custom speeds
 - **17 Enhanced POI categories**: dining, retail, education, healthcare, culture, recreation, transportation, public transit, water features, green infrastructure, community, financial, accommodation, services, utilities, safety & emergency, and natural features
 - **Street network metrics**: connectivity, total street length, segment distributions, pattern entropy
 - **Spatial intelligence**: POI diversity indices (Shannon, Simpson) and clustering patterns
@@ -59,6 +60,19 @@
 | ⚡ **Utilities** | Power stations, water treatment | Critical infrastructure, urban systems |
 | 🚨 **Safety & Emergency** | Fire stations, police, hospitals | Emergency services, public safety |
 | 🌿 **Natural** | Forests, beaches, nature reserves | Natural environment, biodiversity |
+
+### 🚀 **Multi-Modal Isochrone Accessibility**
+
+| **Mode** | **Default Speed** | **Use Cases** |
+|----------|------------------|---------------|
+| 🚶 **Walking** | 5.0 km/h | Pedestrian accessibility, walkability analysis |
+| 🚴 **Biking** | 15.0 km/h | Cycling infrastructure, bike-friendly areas |
+| 🚗 **Driving** | 40.0 km/h | Car accessibility, service area analysis |
+
+- **Network-based routing**: Uses actual street networks for realistic travel times
+- **Custom speed configuration**: Adjust speeds for different analysis scenarios
+- **Combined analysis**: Compare radius-based vs time-based accessibility
+- **Comprehensive metrics**: POI counts, area coverage, accessibility comparisons
 
 ### 🔬 **Advanced Spatial Analysis**
 
@@ -129,6 +143,65 @@ print(f"Water features: {water_count}")
 spatial = result['poi_metrics']['distribution_metrics']['spatial_distribution']
 print(f"Spatial pattern: {spatial['pattern_interpretation']}")
 print(f"Mean distance between POIs: {spatial['mean_nearest_neighbor_distance_meters']}m")
+```
+
+### 🚀 **NEW: Multi-Modal Isochrone Accessibility Analysis**
+
+```python
+from geofeaturekit import features_from_coordinate
+
+# Multi-modal accessibility analysis
+features = features_from_coordinate(
+    lat=40.7580,  # Times Square
+    lon=-73.9855,
+    max_travel_time_min_walk=10,    # 10-minute walking isochrone
+    max_travel_time_min_bike=5,     # 5-minute biking isochrone  
+    max_travel_time_min_drive=15,   # 15-minute driving isochrone
+    speed_config={'walk': 4.8, 'bike': 17, 'drive': 35}  # Custom speeds
+)
+
+# Access walking accessibility
+walk_data = features['isochrone_features_walk']
+walk_pois = walk_data['poi_metrics']['absolute_counts']['total_points_of_interest']
+walk_area = walk_data['isochrone_info']['area_sqm']
+print(f"Walking (10min): {walk_pois} POIs accessible in {walk_area:.0f} sqm")
+
+# Access biking accessibility  
+bike_data = features['isochrone_features_bike']
+bike_pois = bike_data['poi_metrics']['absolute_counts']['total_points_of_interest']
+bike_area = bike_data['isochrone_info']['area_sqm']
+print(f"Biking (5min): {bike_pois} POIs accessible in {bike_area:.0f} sqm")
+
+# Compare accessibility by transportation mode
+print("Accessibility Comparison:")
+for mode, data in features.items():
+    info = data['isochrone_info']
+    poi_count = data['poi_metrics']['absolute_counts']['total_points_of_interest']
+    print(f"  {info['mode'].title()}: {poi_count} POIs in {info['travel_time_minutes']}min")
+```
+
+### Combined Radius + Isochrone Analysis
+
+```python
+from geofeaturekit import features_from_coordinate
+
+# Analyze both circular radius and accessibility isochrones
+features = features_from_coordinate(
+    lat=40.7580,
+    lon=-73.9855,
+    radius_m=500,                   # 500m circular radius
+    max_travel_time_min_walk=8,     # 8-minute walking accessibility
+    max_travel_time_min_bike=4      # 4-minute biking accessibility
+)
+
+# Compare different analysis methods
+radius_pois = features['radius_features']['poi_metrics']['absolute_counts']['total_points_of_interest']
+walk_pois = features['isochrone_features_walk']['poi_metrics']['absolute_counts']['total_points_of_interest'] 
+bike_pois = features['isochrone_features_bike']['poi_metrics']['absolute_counts']['total_points_of_interest']
+
+print(f"Circular (500m): {radius_pois} POIs")
+print(f"Walking (8min): {walk_pois} POIs") 
+print(f"Biking (4min): {bike_pois} POIs")
 ```
 
 ## 📝 Example Output
