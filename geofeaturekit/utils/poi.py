@@ -624,7 +624,7 @@ def download_pois(
         custom_tags: Custom OSM tags to filter POIs
         
     Returns:
-        GeoDataFrame containing points of interest
+        GeoDataFrame containing points of interest (empty if no features found)
     """
     # Configure OSMnx
     ox.settings.use_cache = True
@@ -647,12 +647,21 @@ def download_pois(
     if custom_tags:
         tags.update(custom_tags)
     
-    # Download POIs
-    pois = ox.features_from_point(
-        (latitude, longitude),
-        tags=tags,
-        dist=radius_meters
-    )
-    
-    # Filter to just points
-    return pois[pois.geometry.type == 'Point'].copy() 
+    try:
+        # Download POIs
+        pois = ox.features_from_point(
+            (latitude, longitude),
+            tags=tags,
+            dist=radius_meters
+        )
+        
+        # Filter to just points
+        return pois[pois.geometry.type == 'Point'].copy()
+        
+    except ox._errors.InsufficientResponseError:
+        # Handle case where no POIs are found (common with very small radii)
+        print(f"  Warning: No POIs found within {radius_meters}m radius")
+        return gpd.GeoDataFrame(columns=['amenity'], geometry=[])
+    except Exception as e:
+        print(f"  Warning: Error downloading POI data: {str(e)}")
+        return gpd.GeoDataFrame(columns=['amenity'], geometry=[]) 

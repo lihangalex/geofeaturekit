@@ -35,7 +35,10 @@ class UrbanFeatureExtractor:
             raise GeoFeatureKitError("Radius must be positive")
         
         # Warn about very small radii
-        if radius_meters < 50:
+        if radius_meters < 10:
+            print(f"Warning: Extremely small radius ({radius_meters}m) will likely result in no street network data.")
+            print("Network metrics will be null, but POI and land use data may still be available.")
+        elif radius_meters < 50:
             print(f"Warning: Very small radius ({radius_meters}m) may result in limited or no data.")
             print("Consider using a radius of at least 50m for meaningful analysis.")
         elif radius_meters < 100:

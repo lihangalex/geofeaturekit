@@ -572,7 +572,7 @@ def download_network(
     longitude: float,
     radius_meters: int,
     network_type: str = "all"
-) -> nx.MultiDiGraph:
+) -> Optional[nx.MultiDiGraph]:
     """Download street network data from OpenStreetMap.
     
     Args:
@@ -582,10 +582,11 @@ def download_network(
         network_type: Type of network to download ('all', 'drive', 'walk', 'bike')
         
     Returns:
-        NetworkX graph containing street network
+        NetworkX graph containing street network, or None if no network found
         
-    Raises:
-        GeoFeatureKitError: If network download fails
+    Note:
+        Returns None instead of raising an error when no network is found,
+        allowing other features to be extracted gracefully.
     """
     try:
         # Configure OSMnx
@@ -638,7 +639,13 @@ def download_network(
         return G
         
     except Exception as e:
-        raise GeoFeatureKitError(f"Failed to download network: {str(e)}")
+        error_msg = str(e).lower()
+        if "found no graph nodes" in error_msg or "insufficient response" in error_msg:
+            print(f"  Warning: No street network found within {radius_meters}m radius")
+            return None
+        else:
+            # Re-raise for other types of errors
+            raise GeoFeatureKitError(f"Failed to download network: {str(e)}")
 
 def _calculate_density_metrics(
     G: nx.MultiDiGraph,

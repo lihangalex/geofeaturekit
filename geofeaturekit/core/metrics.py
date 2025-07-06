@@ -20,20 +20,58 @@ from ..utils.formatting import (
 )
 from ..exceptions import GeoFeatureKitError
 
-def calculate_network_metrics(G: nx.MultiDiGraph) -> Dict[str, Any]:
+def calculate_network_metrics(G: Optional[nx.MultiDiGraph]) -> Dict[str, Any]:
     """Calculate network metrics.
     
     Args:
-        G: NetworkX graph
+        G: NetworkX graph or None
         
     Returns:
-        Dictionary containing network metrics
+        Dictionary containing network metrics (with null values if no network)
     """
+    if G is None or len(G) == 0:
+        # Return empty metrics when no network is available
+        return {
+            "basic_metrics": {
+                "total_nodes": 0,
+                "total_street_segments": 0,
+                "total_intersections": 0,
+                "total_dead_ends": 0,
+                "total_street_length_meters": 0.0
+            },
+            "density_metrics": {
+                "intersections_per_sqkm": 0.0,
+                "street_length_per_sqkm": 0.0
+            },
+            "connectivity_metrics": {
+                "streets_to_nodes_ratio": None,
+                "average_connections_per_node": {
+                    "value": None,
+                    "confidence_interval_95": {
+                        "lower": None,
+                        "upper": None
+                    }
+                }
+            },
+            "street_pattern_metrics": {
+                "street_segment_length_distribution": {
+                    "minimum_meters": None,
+                    "maximum_meters": None,
+                    "mean_meters": None,
+                    "median_meters": None,
+                    "std_dev_meters": None
+                },
+                "street_bearing_distribution": {
+                    "mean_degrees": None,
+                    "std_dev_degrees": None
+                },
+                "ninety_degree_intersection_ratio": None,
+                "bearing_entropy": None
+            }
+        }
+    
     if not isinstance(G, nx.MultiDiGraph):
         raise GeoFeatureKitError("Graph must be a NetworkX MultiDiGraph")
-    
-    if len(G) == 0:
-        raise GeoFeatureKitError("Cannot calculate metrics for empty graph")
     
     # Basic metrics
     total_nodes = G.number_of_nodes()
@@ -553,14 +591,14 @@ def calculate_data_quality_metrics(
     }
 
 def calculate_all_metrics(
-    G: nx.MultiDiGraph,
+    G: Optional[nx.MultiDiGraph],
     pois: gpd.GeoDataFrame,
     area_sqm: Optional[float] = None
 ) -> Dict[str, Any]:
     """Calculate all metrics for a given area.
     
     Args:
-        G: NetworkX graph
+        G: NetworkX graph or None
         pois: GeoDataFrame containing POIs
         area_sqm: Optional area override in square meters
         
@@ -569,9 +607,12 @@ def calculate_all_metrics(
     """
     # Use graph area if not provided
     if area_sqm is None:
-        area_sqm = float(G.graph.get('area_sqm', 0))
-        if area_sqm <= 0:
-            raise GeoFeatureKitError("Graph must have area_sqm attribute if area_sqm not provided")
+        if G is not None:
+            area_sqm = float(G.graph.get('area_sqm', 0))
+            if area_sqm <= 0:
+                raise GeoFeatureKitError("Graph must have area_sqm attribute if area_sqm not provided")
+        else:
+            raise GeoFeatureKitError("area_sqm must be provided when network graph is None")
     
     return {
         "network_metrics": calculate_network_metrics(G),
