@@ -1,6 +1,7 @@
 """Core metrics calculation module."""
 
 import numpy as np
+import pandas as pd
 import networkx as nx
 import geopandas as gpd
 from typing import Dict, Any, List, Tuple, Optional
@@ -18,7 +19,36 @@ from ..utils.formatting import (
     PERCENT_DECIMALS,
     AREA_DECIMALS
 )
+from ..utils.poi_categories import POI_CATEGORIES
 from ..exceptions import GeoFeatureKitError
+
+def categorize_poi(poi_row) -> List[str]:
+    """Categorize a POI based on its tags.
+    
+    Args:
+        poi_row: A row from the POI GeoDataFrame containing OSM tags
+        
+    Returns:
+        List of category names that this POI belongs to
+    """
+    categories = []
+    
+    # Check each category definition
+    for category_name, tag_patterns in POI_CATEGORIES.items():
+        # Check if the POI matches any of the tag patterns for this category
+        for tag_pattern in tag_patterns:
+            for tag_key, tag_values in tag_pattern.items():
+                # Check if the POI has this tag key
+                if tag_key in poi_row and poi_row[tag_key] is not None:
+                    poi_value = poi_row[tag_key]
+                    # Check if the POI's value matches any of the required values
+                    if poi_value in tag_values:
+                        categories.append(category_name)
+                        break  # Found a match, no need to check more patterns for this category
+            if category_name in categories:
+                break  # Already found this category, move to next category
+    
+    return categories if categories else ['unknown']
 
 def calculate_network_metrics(G: Optional[nx.MultiDiGraph]) -> Dict[str, Any]:
     """Calculate network metrics.
@@ -301,16 +331,19 @@ def calculate_poi_metrics(
             }
         }
     
-    # Ensure amenity column exists
-    if 'amenity' not in pois.columns:
-        # For small radii or limited POI data, amenity column might not exist
-        # Create an empty amenity column and proceed with empty POI analysis
-        pois = pois.copy()
-        pois['amenity'] = None
+    # Categorize each POI using all available tags
+    all_categories = []
+    for _, poi_row in pois.iterrows():
+        poi_categories = categorize_poi(poi_row)
+        all_categories.extend(poi_categories)
     
-    # Calculate category counts, handling missing values
-    category_counts = pois['amenity'].fillna('unknown').value_counts()
-    category_proportions = category_counts / len(pois)
+    # Count occurrences of each category
+    from collections import Counter
+    category_counts = Counter(all_categories)
+    
+    # Convert to pandas Series for consistency with existing code
+    category_counts = pd.Series(category_counts)
+    category_proportions = category_counts / len(all_categories)
     
     # Calculate diversity indices
     shannon_diversity = -np.sum(category_proportions * np.log(category_proportions))

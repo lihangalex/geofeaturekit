@@ -13,7 +13,7 @@
 **Input:** Just latitude and longitude coordinates  
 **Output:** Comprehensive geospatial intelligence including:
 
-- **40+ POI categories**: restaurants, hospitals, subway stations, benches, toilets, and more
+- **17 Enhanced POI categories**: dining, retail, education, healthcare, culture, recreation, transportation, public transit, water features, green infrastructure, community, financial, accommodation, services, utilities, safety & emergency, and natural features
 - **Street network metrics**: connectivity, total street length, segment distributions, pattern entropy
 - **Spatial intelligence**: POI diversity indices (Shannon, Simpson) and clustering patterns
 
@@ -35,6 +35,37 @@
 ✅ **Robust testing**: Replaced flaky tests with deterministic grid-based validation  
 ✅ **Python 3.9+ compatibility**: Full support across Python versions
 ✅ **Automated releases**: GitHub Actions now automatically publishes to PyPI on version tags
+
+## 🌟 Enhanced Features
+
+### 🏙️ **17 Comprehensive POI Categories**
+
+| **Category** | **Examples** | **Use Cases** |
+|-------------|--------------|---------------|
+| 🍽️ **Dining** | Restaurants, cafes, bars, fast food | Food accessibility, nightlife analysis |
+| 🏪 **Retail** | Supermarkets, malls, convenience stores | Shopping accessibility, commercial zones |
+| 🎓 **Education** | Schools, universities, libraries | Educational accessibility, learning hubs |
+| 🏥 **Healthcare** | Hospitals, clinics, pharmacies | Medical accessibility, health services |
+| 🎭 **Culture** | Museums, theaters, art centers | Cultural richness, entertainment venues |
+| 🏃 **Recreation** | Parks, gyms, sports centers | Fitness accessibility, recreational spaces |
+| 🚗 **Transportation** | Parking, bike rental, airports | Mobility infrastructure, transport hubs |
+| 🚇 **Public Transit** | Subway stations, bus stops, trams | Public transport accessibility |
+| 🌊 **Water Features** | Rivers, fountains, coastlines | Natural water access, scenic features |
+| 🌳 **Green Infrastructure** | Trees, parks, gardens, benches | Environmental quality, green spaces |
+| 🏛️ **Community** | Community centers, places of worship | Social infrastructure, civic spaces |
+| 🏦 **Financial** | Banks, ATMs, financial services | Banking accessibility, financial hubs |
+| 🏨 **Accommodation** | Hotels, hostels, guest houses | Tourism infrastructure, lodging |
+| 🔧 **Services** | Post offices, laundry, salons | Daily services, convenience access |
+| ⚡ **Utilities** | Power stations, water treatment | Critical infrastructure, urban systems |
+| 🚨 **Safety & Emergency** | Fire stations, police, hospitals | Emergency services, public safety |
+| 🌿 **Natural** | Forests, beaches, nature reserves | Natural environment, biodiversity |
+
+### 🔬 **Advanced Spatial Analysis**
+
+- **Nearest Neighbor Analysis**: Spatial clustering patterns (clustered/random/dispersed)
+- **Diversity Metrics**: Shannon and Simpson indices for POI variety
+- **Street Pattern Analysis**: Bearing entropy, intersection ratios, connectivity metrics
+- **Graceful Error Handling**: Robust extraction even with limited data availability
 
 ## ✨ Why GeoFeatureKit?
 
@@ -65,6 +96,39 @@ features = features_from_location({
 }, show_progress=True)
 
 print(features)
+```
+
+### Enhanced POI Analysis
+
+```python
+from geofeaturekit import features_from_location
+
+# Get comprehensive POI analysis
+result = features_from_location({
+    'latitude': 40.7580,  # Times Square
+    'longitude': -73.9855,
+    'radius_meters': 800
+})
+
+# Access enhanced POI categories
+poi_counts = result['poi_metrics']['absolute_counts']['counts_by_category']
+
+# Example: Find areas with good public transit
+transit_count = poi_counts.get('total_public_transit_places', {}).get('count', 0)
+print(f"Public transit stops: {transit_count}")
+
+# Example: Analyze green infrastructure
+green_count = poi_counts.get('total_green_infrastructure_places', {}).get('count', 0)
+print(f"Green infrastructure: {green_count}")
+
+# Example: Check water features
+water_count = poi_counts.get('total_water_features_places', {}).get('count', 0)
+print(f"Water features: {water_count}")
+
+# Access spatial distribution analysis
+spatial = result['poi_metrics']['distribution_metrics']['spatial_distribution']
+print(f"Spatial pattern: {spatial['pattern_interpretation']}")
+print(f"Mean distance between POIs: {spatial['mean_nearest_neighbor_distance_meters']}m")
 ```
 
 ## 📝 Example Output
@@ -114,79 +178,88 @@ print(features)
     "absolute_counts": {
       "total_points_of_interest": 1076,
       "counts_by_category": {
-        "total_restaurant_places": {
-          "count": 173,
-          "percentage": 16.1
+        "total_dining_places": {
+          "count": 370,
+          "percentage": 34.39
         },
-        "total_fast_food_places": {
-          "count": 77,
-          "percentage": 7.2
+        "total_transportation_places": {
+          "count": 190,
+          "percentage": 17.66
         },
-        "total_cafe_places": {
-          "count": 74,
-          "percentage": 6.9
+        "total_public_transit_places": {
+          "count": 96,
+          "percentage": 8.92
         },
-        "total_bicycle_parking_places": {
-          "count": 71,
-          "percentage": 6.6
+        "total_green_infrastructure_places": {
+          "count": 37,
+          "percentage": 3.44
         },
-        "total_bench_places": {
-          "count": 27,
-          "percentage": 2.5
+        "total_culture_places": {
+          "count": 34,
+          "percentage": 3.16
         },
-        "total_bar_places": {
-          "count": 26,
-          "percentage": 2.4
+        "total_financial_places": {
+          "count": 31,
+          "percentage": 2.88
         },
-        "total_bank_places": {
-          "count": 24,
-          "percentage": 2.2
+        "total_retail_places": {
+          "count": 18,
+          "percentage": 1.67
         },
-        "total_pub_places": {
-          "count": 19,
-          "percentage": 1.8
+        "total_accommodation_places": {
+          "count": 16,
+          "percentage": 1.49
         },
-        "total_bicycle_rental_places": {
-          "count": 15,
-          "percentage": 1.4
+        "total_services_places": {
+          "count": 16,
+          "percentage": 1.49
         },
-        "total_theatre_places": {
-          "count": 12,
-          "percentage": 1.1
+        "total_healthcare_places": {
+          "count": 13,
+          "percentage": 1.21
         },
-        "total_pharmacy_places": {
+        "total_water_features_places": {
+          "count": 11,
+          "percentage": 1.02
+        },
+        "total_recreation_places": {
           "count": 6,
-          "percentage": 0.6
+          "percentage": 0.56
         },
-        "total_atm_places": {
-          "count": 4,
-          "percentage": 0.4
+        "total_education_places": {
+          "count": 3,
+          "percentage": 0.28
+        },
+        "total_community_places": {
+          "count": 3,
+          "percentage": 0.28
         }
       }
     },
     "density_metrics": {
-      "points_of_interest_per_sqkm": 1370.700637,
+      "points_of_interest_per_sqkm": 1370.7,
       "density_by_category": {
-        "restaurant_places_per_sqkm": 220.382166,
-        "fast_food_places_per_sqkm": 98.089172,
-        "cafe_places_per_sqkm": 94.267516,
-        "bicycle_parking_places_per_sqkm": 90.44586,
-        "bank_places_per_sqkm": 30.573248,
-        "theatre_places_per_sqkm": 15.286624,
-        "pharmacy_places_per_sqkm": 7.643312
+        "dining_places_per_sqkm": 471.1,
+        "transportation_places_per_sqkm": 241.9,
+        "public_transit_places_per_sqkm": 122.2,
+        "green_infrastructure_places_per_sqkm": 47.1,
+        "culture_places_per_sqkm": 43.3,
+        "financial_places_per_sqkm": 39.5,
+        "retail_places_per_sqkm": 22.9,
+        "water_features_places_per_sqkm": 14.0
       }
     },
     "distribution_metrics": {
-      "unique_category_count": 42,
-              "largest_category": {
-          "name": "restaurant",
-          "count": 173,
-          "percentage": 16.08
-        },
+      "unique_category_count": 15,
+      "largest_category": {
+        "name": "dining",
+        "count": 370,
+        "percentage": 34.39
+      },
       "diversity_metrics": {
-        "shannon_diversity_index": 2.245,
-        "simpson_diversity_index": 0.79,
-        "category_evenness": 0.601
+        "shannon_diversity_index": 2.11,
+        "simpson_diversity_index": 0.81,
+        "category_evenness": 0.78
       },
       "spatial_distribution": {
         "mean_nearest_neighbor_distance_meters": 13.2,

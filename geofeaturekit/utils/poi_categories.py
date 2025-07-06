@@ -34,17 +34,42 @@ POI_CATEGORIES: Dict[str, List[Dict[str, Set[str]]]] = {
     ],
     
     "recreation": [
-        {"leisure": {"park", "sports_centre", "fitness_centre", "swimming_pool"}},
+        {"leisure": {"park", "sports_centre", "fitness_centre", "swimming_pool", "playground", "sports_ground", "pitch", "dog_park"}},
         {"amenity": {"park", "swimming_pool"}},
         {"sport": {"fitness", "swimming", "gym"}},
         {"building": {"sports_centre", "stadium"}}
     ],
     
     "transportation": [
-        {"amenity": {"bus_station", "parking", "bicycle_parking", "car_sharing"}},
-        {"public_transport": {"station", "stop_position"}},
-        {"railway": {"station", "halt", "tram_stop"}},
-        {"highway": {"bus_stop"}}
+        {"amenity": {"bus_station", "parking", "bicycle_parking", "car_sharing", "bicycle_rental", "taxi"}},
+        {"public_transport": {"station", "stop_position", "platform"}},
+        {"railway": {"station", "halt", "tram_stop", "subway_entrance"}},
+        {"highway": {"bus_stop"}},
+        {"aeroway": {"aerodrome", "helipad"}}
+    ],
+    
+    "public_transit": [
+        {"railway": {"subway_entrance", "station", "tram_stop", "light_rail"}},
+        {"public_transport": {"stop_position", "platform", "station"}},
+        {"highway": {"bus_stop"}},
+        {"amenity": {"bus_station", "ferry_terminal"}},
+        {"route": {"subway", "bus", "tram", "ferry"}}
+    ],
+    
+    "water_features": [
+        {"natural": {"water", "bay", "beach", "coastline", "strait"}},
+        {"waterway": {"river", "stream", "canal", "dock", "dam"}},
+        {"leisure": {"marina", "swimming_area"}},
+        {"amenity": {"fountain", "drinking_water"}},
+        {"landuse": {"basin", "reservoir"}}
+    ],
+    
+    "green_infrastructure": [
+        {"natural": {"tree", "wood", "scrub", "grassland", "meadow"}},
+        {"leisure": {"park", "garden", "nature_reserve", "dog_park", "playground"}},
+        {"landuse": {"forest", "grass", "meadow", "orchard", "vineyard"}},
+        {"amenity": {"bench", "waste_basket"}},
+        {"barrier": {"hedge"}}
     ],
     
     "community": [
@@ -72,6 +97,20 @@ POI_CATEGORIES: Dict[str, List[Dict[str, Set[str]]]] = {
         {"office": {"insurance", "lawyer", "estate_agent"}}
     ],
     
+    "utilities": [
+        {"power": {"tower", "pole", "substation", "generator"}},
+        {"man_made": {"tower", "water_tower", "pumping_station", "water_treatment", "wastewater_plant"}},
+        {"amenity": {"charging_station", "fuel"}},
+        {"utility": {"power", "water", "gas", "telecommunications"}}
+    ],
+    
+    "safety_emergency": [
+        {"amenity": {"police", "fire_station", "hospital"}},
+        {"emergency": {"fire_hydrant", "defibrillator", "assembly_point", "siren"}},
+        {"highway": {"emergency_access_point"}},
+        {"man_made": {"surveillance", "lighthouse"}}
+    ],
+    
     "natural": [
         {"natural": {"water", "beach", "wood", "tree"}},
         {"leisure": {"nature_reserve", "garden"}},
@@ -81,18 +120,23 @@ POI_CATEGORIES: Dict[str, List[Dict[str, Set[str]]]] = {
 
 # Define category weights for importance scoring
 CATEGORY_WEIGHTS: Dict[str, float] = {
-    "dining": 1.0,        # Basic amenity
-    "retail": 1.0,        # Basic amenity
-    "education": 1.5,     # Important community facility
-    "healthcare": 1.5,    # Important community facility
-    "culture": 1.2,       # Quality of life contributor
-    "recreation": 1.2,    # Quality of life contributor
-    "transportation": 1.3, # Infrastructure importance
-    "community": 1.4,     # Social infrastructure
-    "financial": 0.8,     # Convenience service
-    "accommodation": 0.7,  # Tourism/temporary use
-    "services": 0.9,      # Support services
-    "natural": 1.1        # Environmental value
+    "dining": 1.0,              # Basic amenity
+    "retail": 1.0,              # Basic amenity
+    "education": 1.5,           # Important community facility
+    "healthcare": 1.5,          # Important community facility
+    "culture": 1.2,             # Quality of life contributor
+    "recreation": 1.2,          # Quality of life contributor
+    "transportation": 1.3,      # Infrastructure importance
+    "public_transit": 1.4,      # High-value urban infrastructure
+    "water_features": 1.1,      # Environmental value
+    "green_infrastructure": 1.3, # Environmental & livability
+    "community": 1.4,           # Social infrastructure
+    "financial": 0.8,           # Convenience service
+    "accommodation": 0.7,       # Tourism/temporary use
+    "services": 0.9,            # Support services
+    "utilities": 1.2,           # Critical infrastructure
+    "safety_emergency": 1.5,    # Safety & security
+    "natural": 1.1              # Environmental value
 }
 
 def get_poi_tags() -> Dict[str, List[str]]:
