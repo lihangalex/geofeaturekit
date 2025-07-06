@@ -6,7 +6,7 @@
 [![Tests](https://github.com/lihangalex/geofeaturekit/workflows/Test/badge.svg)](https://github.com/lihangalex/geofeaturekit/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**GeoFeatureKit turns raw coordinates into rich, structured geospatial features – instantly.**
+**GeoFeatureKit: Instantly extract geospatial features, POI analysis, and accessibility insights from coordinates for ML, urban planning, and location intelligence.**
 
 ## 🎯 What You Get
 
@@ -14,32 +14,30 @@
 **Output:** Comprehensive geospatial intelligence including:
 
 - **🚀 NEW: Multi-modal isochrone accessibility**: Walk, bike, and drive accessibility analysis with custom speeds
-- **23 Comprehensive POI categories**: dining, retail, education, healthcare, culture, recreation, transportation, bicycle services, public transit, water features, green infrastructure, community, financial, accommodation, services, childcare, toilets & hygiene, automotive, animal services, workspace, utilities, safety & emergency, and natural features
+- **23 Comprehensive Points of Interest (POI) categories**: dining, retail, education, healthcare, culture, recreation, transportation, bicycle services, public transit, water features, green infrastructure, community, financial, accommodation, services, childcare, toilets & hygiene, automotive, animal services, workspace, utilities, safety & emergency, and natural features
 - **Street network metrics**: connectivity, total street length, segment distributions, pattern entropy
 - **Spatial intelligence**: POI diversity indices (Shannon, Simpson) and clustering patterns
 
 ## 🚀 Use Cases
 
-| **Domain** | **Application** | **Key Features** |
-|------------|-----------------|------------------|
-| 🤖 **Machine Learning** | Price prediction, exposure analysis | Rich feature vectors, contextual embeddings |
-| 📊 **Research** | Propensity score matching | Urban covariates, accessibility metrics |
-| 🏙️ **Urban Planning** | Accessibility research, zoning analysis | Spatial patterns, connectivity measures |
-| 🧠 **AI/ML** | Neural networks, spatial clustering | Environmental context, amenity features |
+| **Functionality** | **Example Applications** | **Target Users** |
+|-------------------|--------------------------|------------------|
+| 🔍 **Matching & Similarity** | Propensity score matching, site similarity | Data scientists, causal researchers |
+| 📈 **Predictive Modeling** | Retail sales, price models | ML engineers, analysts |
+| 🚶 **Accessibility Analysis** | Walk/bike/drive accessibility scoring | Urban planners, mobility researchers |
+| 🎯 **Clustering & Segmentation** | Urban typology, market segmentation | GIS analysts, city scientists |
+| 📊 **Exposure Analysis** | Competitor density, service area analysis | Business analysts, planners |
 
-## 🔧 Recent Updates
 
-✅ **Fixed spatial distribution bug**: Mean nearest neighbor distance now correctly calculates distances to ALL other points, not just subsequent ones  
-✅ **Improved coordinate detection**: Better handling of meter vs degree coordinate systems  
-✅ **Enhanced precision**: Cleaner formatting with appropriate decimal places  
-✅ **Fixed network metrics**: Corrected dead end and intersection counting logic  
-✅ **Robust testing**: Replaced flaky tests with deterministic grid-based validation  
-✅ **Python 3.9+ compatibility**: Full support across Python versions
-✅ **Automated releases**: GitHub Actions now automatically publishes to PyPI on version tags
 
 ## 🌟 Enhanced Features
 
-### 🏙️ **17 Comprehensive POI Categories**
+See [CHANGELOG.md](CHANGELOG.md) for complete version history and recent updates.
+
+### 🏙️ **23 Comprehensive POI Categories**
+
+<details>
+<summary>📋 View all 23 POI categories</summary>
 
 | **Category** | **Examples** | **Use Cases** |
 |-------------|--------------|---------------|
@@ -66,6 +64,8 @@
 | 🐕 **Animal Services** | Veterinarians, pet shops, shelters | Pet care & animal welfare |
 | 💼 **Workspace** | Coworking spaces, offices | Modern work infrastructure |
 | 🚴 **Bicycle Services** | Bike shops, repairs, rentals | Cycling infrastructure support |
+
+</details>
 
 ### 🚀 **Multi-Modal Isochrone Accessibility**
 
@@ -94,7 +94,7 @@
 | ✅ **Simple** | Just coordinates in – structured features out |
 | ✅ **Powerful** | Dozens of geospatial metrics in one function call |
 | ✅ **User-friendly** | Optional progress bars and verbose modes |
-| ✅ **Open Data** | Built entirely on OSM and public geospatial libraries |
+| ✅ **Open Data** | Built entirely on OpenStreetMap (OSM) and public geospatial libraries |
 
 ## 🚀 Quick Start
 
@@ -258,16 +258,24 @@ print(f"Biking (4min): {bike_pois} POIs")
       "total_points_of_interest": 1076,
       "counts_by_category": {
         "total_dining_places": {
-          "count": 370,
-          "percentage": 34.39
+          "count": 400,
+          "percentage": 37.17
         },
         "total_transportation_places": {
           "count": 190,
           "percentage": 17.66
         },
+        "total_retail_places": {
+          "count": 126,
+          "percentage": 11.71
+        },
         "total_public_transit_places": {
           "count": 96,
           "percentage": 8.92
+        },
+        "total_bicycle_services_places": {
+          "count": 86,
+          "percentage": 7.99
         },
         "total_green_infrastructure_places": {
           "count": 37,
@@ -281,15 +289,11 @@ print(f"Biking (4min): {bike_pois} POIs")
           "count": 31,
           "percentage": 2.88
         },
-        "total_retail_places": {
-          "count": 18,
-          "percentage": 1.67
+        "total_services_places": {
+          "count": 27,
+          "percentage": 2.51
         },
         "total_accommodation_places": {
-          "count": 16,
-          "percentage": 1.49
-        },
-        "total_services_places": {
           "count": 16,
           "percentage": 1.49
         },
@@ -304,6 +308,14 @@ print(f"Biking (4min): {bike_pois} POIs")
         "total_recreation_places": {
           "count": 6,
           "percentage": 0.56
+        },
+        "total_toilets_hygiene_places": {
+          "count": 5,
+          "percentage": 0.46
+        },
+        "total_workspace_places": {
+          "count": 5,
+          "percentage": 0.46
         },
         "total_education_places": {
           "count": 3,
@@ -356,29 +368,31 @@ print(f"Biking (4min): {bike_pois} POIs")
 | **Location Characteristics** | **Value** | **Interpretation** |
 |---------------------------|-----------|-------------------|
 | 🏙️ **POI Density** | 1,371 per km² | Ultra-dense location (rural areas: <10) |
-| 🍽️ **Food Scene** | 324 establishments | Dining powerhouse in 500m radius |
-| 🚲 **Transit Access** | 86 bike facilities | Sustainable transport infrastructure |
-| 🏛️ **Entertainment** | 12 theaters + 38 venues | Major entertainment district |
-| 🏪 **Financial Services** | 24 banks + 4 ATMs | Active commercial hub |
+| 🍽️ **Food Scene** | 400 establishments | Dining powerhouse - major food hub |
+| 🚴 **Bicycle Infrastructure** | 86 bike facilities | Excellent cycling support services |
+| 🏪 **Retail Access** | 126 stores | Strong shopping accessibility |
+| 🚇 **Public Transit** | 96 stops/stations | Outstanding public transport connectivity |
+| 🚻 **Essential Amenities** | 5 toilet facilities | Basic public amenities available |
+| 💼 **Workspace Options** | 5 coworking spaces | Modern work infrastructure present |
 
 | **Network Intelligence** | **Value** | **Interpretation** |
 |--------------------------|-----------|-------------------|
-| 🚶 **Walkability** | 5.95 connections/node | Very high pedestrian connectivity |
-| 🗺️ **Street Pattern** | 2.056 bearing entropy | Organized grid-like layout |
+| 🚶 **Walkability** | 5.95 connections/node | Very high pedestrian connectivity (2-8+ scale) |
+| 🗺️ **Street Pattern** | 2.056 bearing entropy | Organized grid-like layout (0-4+ scale, lower = more organized) |
 | 🛣️ **Network Density** | 101.9 km/km² | Dense street network |
 
 | **Spatial Intelligence** | **Value** | **Use Case** |
 |--------------------------|-----------|--------------|
-| 📊 **Shannon Diversity** | 2.245 | High variety → Rich ML features |
-| 📈 **Simpson Diversity** | 0.79 | Robust POI mix → Stable predictions |
-| 🎯 **Clustering Pattern** | R = 0.978 | Random distribution → Uniform coverage |
+| 📊 **Shannon Diversity** | 2.245 | High POI variety (0-4+ scale) → Rich ML features |
+| 📈 **Simpson Diversity** | 0.79 | Robust POI mix probability (0-1 scale) → Stable predictions |
+| 🎯 **Clustering Pattern** | R = 0.978 | Random distribution (<1 clustered, ~1 random, >1 dispersed) → Uniform coverage |
 
 > **Perfect for:** Price prediction models, accessibility scoring, urban planning analysis
 
 ## 🎯 Key Features
 
-### **Rich POI Analysis** *(Points of Interest)*
-- **40+ categories**: restaurants, hospitals, schools, transit, entertainment
+### **Rich Points of Interest (POI) Analysis**
+- **23 comprehensive categories**: dining, retail, healthcare, education, transportation, childcare, toilets & hygiene, bicycle services, workspace, and more
 - **Density metrics**: POIs per square kilometer by category
 - **Diversity indices**: 
   - *Shannon diversity*: Measures variety and evenness (higher = more diverse)
@@ -392,16 +406,7 @@ print(f"Biking (4min): {bike_pois} POIs")
 - **Bearing analysis**: street orientation entropy and grid patterns
 
 ### **Progress Tracking**
-| **Mode** | **Code** | **Use Case** |
-|----------|----------|--------------|
-| **Standard** | `show_progress=True, progress_detail='normal'` | General use with progress bars |
-| **Verbose** | `show_progress=True, progress_detail='verbose'` | Detailed debugging information |
-| **Silent** | `show_progress=False` | Batch processing, production |
-
-```python
-# Example: Verbose progress tracking
-features = features_from_location(location, show_progress=True, progress_detail='verbose')
-```
+Control output verbosity with `show_progress=True/False` and `progress_detail='normal'/'verbose'`.
 
 ## 🔬 Scientific Applications
 
@@ -422,7 +427,7 @@ for loc in locations:
     print(f"Walkability score: {walkability_score:.1f}")
 ```
 
-**ML Feature Engineering:**
+**Machine Learning (ML) Feature Engineering:**
 ```python
 # Generate features for price prediction model
 import pandas as pd
@@ -464,7 +469,7 @@ locations = [
 results = features_from_location(locations, show_progress=True)
 ```
 
-### **Command Line Interface**
+### **Command Line Interface (CLI)**
 ```bash
 # Single location analysis
 geofeaturekit analyze 40.7580 -73.9855 --radius 500 --verbose
@@ -489,45 +494,20 @@ for radius in radii:
     print(f"{radius}m radius: {poi_count} POIs")
 ```
 
-## 📖 Key Terms
 
-| **Term** | **Definition** | **Scale** |
-|----------|----------------|-----------|
-| **POI** | Points of Interest (restaurants, hospitals, schools, ATMs) | Count |
-| **Shannon Diversity** | Measures variety and evenness of POI types | 0-4+ (higher = more diverse) |
-| **Simpson Diversity** | Probability two random POIs are different types | 0-1 (higher = more diverse) |
-| **Bearing Entropy** | Street grid organization measure | 0-4+ (lower = more organized) |
-| **R-statistic** | Spatial clustering pattern | 0-2.1 (<1 clustered, ~1 random, >1 dispersed) |
-| **Connectivity** | Average connections per street intersection | 2-8+ (higher = more walkable) |
 
 ## 📊 Output Structure
 
-GeoFeatureKit returns a comprehensive dictionary with four main sections:
+GeoFeatureKit returns a comprehensive dictionary with:
+- **`network_metrics`**: Street connectivity, density, and patterns
+- **`poi_metrics`**: POI counts, density, and diversity analysis  
+- **`units`**: Standardized International System of Units (SI) measurements
 
-```python
-{
-    'network_metrics': {
-        'basic_metrics': {...},      # Node/edge counts, total length
-        'density_metrics': {...},    # Per-km² measurements  
-        'connectivity_metrics': {...}, # Connection patterns
-        'street_pattern_metrics': {...} # Orientation, segment analysis
-    },
-    'poi_metrics': {
-        'absolute_counts': {...},    # Raw POI counts by category
-        'density_metrics': {...},    # POIs per km² by category
-        'distribution_metrics': {...} # Diversity and spatial patterns
-    },
-    'units': {
-        'area': 'square_meters',
-        'length': 'meters', 
-        'density': 'per_square_kilometer'
-    }
-}
-```
+See full JSON structure in the [example output](#📝-example-output) section.
 
 ## 🌍 Standards & Quality
 
-- **SI Units**: All measurements in meters, square kilometers
+- **International System of Units (SI)**: All measurements in meters, square kilometers
 - **Confidence Intervals**: Statistical uncertainty for network metrics
 - **Reproducible**: Deterministic results with caching
 - **Validated**: Comprehensive test suite with property-based testing
@@ -542,7 +522,7 @@ GeoFeatureKit uses automated releases via GitHub Actions. Every time a version t
 
 - ✅ **Tested** on Python 3.9, 3.10, 3.11, and 3.12  
 - ✅ **Built** with proper validation  
-- ✅ **Published** to PyPI  
+- ✅ **Published** to Python Package Index (PyPI)  
 - ✅ **Released** on GitHub with auto-generated notes  
 
 For maintainers: Use `./release.sh <version>` to automate the entire release process.
@@ -553,7 +533,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-Built with [OSMnx](https://github.com/gboeing/osmnx), [NetworkX](https://github.com/networkx/networkx), and [GeoPandas](https://github.com/geopandas/geopandas). Data from [OpenStreetMap](https://www.openstreetmap.org/) contributors.
+Built with [OSMnx](https://github.com/gboeing/osmnx), [NetworkX](https://github.com/networkx/networkx), and [GeoPandas](https://github.com/geopandas/geopandas). Data from [OpenStreetMap (OSM)](https://www.openstreetmap.org/) contributors.
 
 ## 📚 Citation
 
