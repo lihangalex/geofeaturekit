@@ -23,10 +23,24 @@ class TestNetworkMetrics:
     """Test suite for network metrics calculations."""
     
     def test_empty_graph(self):
-        """Test that empty graph raises error."""
+        """Test that empty graph returns null values gracefully."""
         G = nx.MultiDiGraph()
-        with pytest.raises(GeoFeatureKitError, match="Cannot calculate metrics for empty graph"):
-            calculate_network_metrics(G)
+        metrics = calculate_network_metrics(G)
+        
+        # Should return proper structure with null/zero values
+        assert metrics['basic_metrics']['total_nodes'] == 0
+        assert metrics['basic_metrics']['total_street_segments'] == 0
+        assert metrics['basic_metrics']['total_intersections'] == 0
+        assert metrics['basic_metrics']['total_dead_ends'] == 0
+        assert metrics['basic_metrics']['total_street_length_meters'] == 0.0
+        
+        # Density metrics should be zero for empty graph
+        assert metrics['density_metrics']['intersections_per_sqkm'] == 0.0
+        assert metrics['density_metrics']['street_length_per_sqkm'] == 0.0
+        
+        # Connectivity metrics should be None for empty graph
+        assert metrics['connectivity_metrics']['streets_to_nodes_ratio'] is None
+        assert metrics['connectivity_metrics']['average_connections_per_node']['value'] is None
     
     def test_grid_network(self):
         """Test metrics for perfect grid network."""
@@ -181,9 +195,11 @@ class TestIntegration:
 
 def test_error_handling():
     """Test error handling for invalid inputs."""
-    # Invalid graph
+    # Invalid graph - create a non-empty graph of wrong type
+    G = nx.Graph()  # Not a MultiDiGraph
+    G.add_edge(1, 2)  # Make it non-empty to trigger type check
     with pytest.raises(GeoFeatureKitError):
-        calculate_network_metrics(nx.Graph())  # Not a MultiDiGraph
+        calculate_network_metrics(G)
     
     # Invalid POIs
     with pytest.raises(GeoFeatureKitError):
