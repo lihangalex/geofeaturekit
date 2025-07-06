@@ -39,6 +39,7 @@ test_env/
 .pytest_cache/
 htmlcov/
 .tox/
+.hypothesis/
 
 # Cache
 cache/
@@ -51,8 +52,11 @@ cache/
 .DS_Store
 Thumbs.db
 
-# Misc
-.DS_Store
+# Coverage reports
+coverage.xml
+
+# Backup files
+*.backup
 
 # Documentation
 docs/_build/
@@ -60,9 +64,4 @@ docs/api/
 
 # Keep these files
 !.github/
-!requirements*.txt .hypothesis/
-
-# Coverage reports
-coverage.xml
-htmlcov/
-.hypothesis/
+!requirements*.txt
