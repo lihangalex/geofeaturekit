@@ -1,41 +1,20 @@
 name: Publish to PyPI
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'  # Trigger on version tags like v1.0.0, v0.2.4, etc.
+  workflow_dispatch:  # Manual trigger from GitHub Actions tab
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.2.8)'
+        required: true
+        type: string
 
 permissions:
   contents: write  # Required for creating releases
   id-token: write  # Required for trusted publishing (optional but recommended)
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox tox-gh-actions
-    
-    - name: Test with tox
-      run: tox
-
   publish:
-    needs: test  # Only run if all tests pass
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     
     steps:
     - uses: actions/checkout@v3
@@ -50,22 +29,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install build twine
     
-    - name: Verify version tag matches setup.py
+    - name: Verify input version matches setup.py
       run: |
-        # Extract version from tag (remove 'v' prefix)
-        TAG_VERSION=${GITHUB_REF#refs/tags/v}
-        echo "Tag version: $TAG_VERSION"
+        # Get version from workflow input
+        INPUT_VERSION="${{ github.event.inputs.version }}"
+        echo "Input version: $INPUT_VERSION"
         
         # Extract version from setup.py
         SETUP_VERSION=$(python -c "import re; content=open('setup.py').read(); print(re.search(r'version=\"([^\"]+)\"', content).group(1))")
         echo "Setup.py version: $SETUP_VERSION"
         
         # Compare versions
-        if [ "$TAG_VERSION" != "$SETUP_VERSION" ]; then
-          echo "❌ Version mismatch! Tag: $TAG_VERSION, setup.py: $SETUP_VERSION"
+        if [ "$INPUT_VERSION" != "$SETUP_VERSION" ]; then
+          echo "❌ Version mismatch! Input: $INPUT_VERSION, setup.py: $SETUP_VERSION"
+          echo "Please update setup.py version to $INPUT_VERSION before releasing"
           exit 1
         fi
-        echo "✅ Version tag matches setup.py"
+        echo "✅ Input version matches setup.py"
     
     - name: Build package
       run: python -m build
@@ -86,25 +66,32 @@ jobs:
         python -m twine upload dist/*
         echo "✅ Successfully published to PyPI!"
     
-    - name: Set version for release
+    - name: Create git tag and GitHub Release
       run: |
-        # Remove 'v' prefix from tag name for pip install
-        VERSION=${GITHUB_REF_NAME#v}
+        # Set version from input
+        VERSION="${{ github.event.inputs.version }}"
         echo "PACKAGE_VERSION=$VERSION" >> $GITHUB_ENV
+        
+        # Create and push git tag
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "v$VERSION" -m "Release version $VERSION"
+        git push origin "v$VERSION"
     
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: v${{ github.event.inputs.version }}
         files: dist/*
         generate_release_notes: true
         body: |
-          ## 🎉 Release ${{ github.ref_name }}
+          ## 🎉 Release v${{ github.event.inputs.version }}
           
           This release has been automatically published to PyPI.
           
           **Install with:**
           ```bash
-          pip install geofeaturekit==${{ env.PACKAGE_VERSION }}
+          pip install geofeaturekit==${{ github.event.inputs.version }}
           ```
           
           **Or upgrade:**
