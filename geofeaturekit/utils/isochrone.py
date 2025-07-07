@@ -147,7 +147,8 @@ def extract_isochrone_features(
     travel_time_minutes: float,
     mode: str,
     speed_kmh: float,
-    show_progress: bool = True
+    verbose: bool = False,
+    progress_callback: Optional[callable] = None
 ) -> Dict[str, Any]:
     """Extract urban features within an isochrone boundary.
     
@@ -157,7 +158,8 @@ def extract_isochrone_features(
         travel_time_minutes: Maximum travel time in minutes
         mode: Transportation mode ('walk', 'bike', 'drive')
         speed_kmh: Travel speed in km/h
-        show_progress: Whether to show progress information
+        verbose: Enable verbose console output (default: False)
+        progress_callback: Optional callback function(message: str, progress: float)
         
     Returns:
         Dictionary containing isochrone-based urban features and metrics
@@ -187,128 +189,135 @@ def extract_isochrone_features(
     # Use approximate conversion: 1 degree ≈ 111320 meters at equator
     area_sqm = area_deg_sq * (111320 ** 2) * np.cos(np.radians(latitude))
     
-    # Initialize progress tracker
-    progress = EnhancedProgressTracker(
-        show_progress=show_progress,
-        detail_level='normal'
-    )
-    
     location_desc = f"({latitude:.4f}, {longitude:.4f}) - {mode.title()} {travel_time_minutes}min"
     
     try:
-        progress.start_extraction(location_desc)
+        if progress_callback:
+            progress_callback(f"Starting {mode} isochrone analysis", 0.0)
+        elif verbose:
+            print(f"Starting {mode} isochrone analysis for {location_desc}")
         
         # Phase 1: Data Download (70% of total time)
-        with progress.phase('download', 'Downloading Isochrone Data'):
-            progress.update_phase_progress(10, "Downloading street network...")
+        if progress_callback:
+            progress_callback("Downloading street network", 0.1)
+        elif verbose:
+            print("Downloading street network...")
+        
+        # Get network using point-based approach (more stable)
+        try:
+            # Estimate radius from isochrone area
+            estimated_radius = np.sqrt(area_sqm / np.pi)
             
-                         # Get network using point-based approach (more stable)
-            try:
-                # Estimate radius from isochrone area
-                estimated_radius = np.sqrt(area_sqm / np.pi)
+            # Get network from center point with estimated radius
+            G = ox.graph_from_point(
+                (latitude, longitude),
+                dist=estimated_radius,
+                network_type=mode if mode != 'walk' else 'walk'
+            )
+            
+            # Filter network to only include nodes within isochrone (optional - for accuracy)
+            if G is not None and G.number_of_nodes() > 0:
+                nodes_to_remove = []
+                for node in G.nodes():
+                    node_point = Point(G.nodes[node]['x'], G.nodes[node]['y'])
+                    if not isochrone_polygon.contains(node_point):
+                        nodes_to_remove.append(node)
                 
-                # Get network from center point with estimated radius
-                G = ox.graph_from_point(
-                    (latitude, longitude),
-                    dist=estimated_radius,
-                    network_type=mode if mode != 'walk' else 'walk'
-                )
-                
-                # Filter network to only include nodes within isochrone (optional - for accuracy)
-                if G is not None and G.number_of_nodes() > 0:
-                    nodes_to_remove = []
-                    for node in G.nodes():
-                        node_point = Point(G.nodes[node]['x'], G.nodes[node]['y'])
-                        if not isochrone_polygon.contains(node_point):
-                            nodes_to_remove.append(node)
-                    
-                    # Only remove nodes if we're not removing everything
-                    if len(nodes_to_remove) < G.number_of_nodes() * 0.9:
-                        G.remove_nodes_from(nodes_to_remove)
-                
-                # Add area metadata
-                if G is not None:
-                    G.graph['area_sqm'] = area_sqm
-                
-            except Exception as e:
+                # Only remove nodes if we're not removing everything
+                if len(nodes_to_remove) < G.number_of_nodes() * 0.9:
+                    G.remove_nodes_from(nodes_to_remove)
+            
+            # Add area metadata
+            if G is not None:
+                G.graph['area_sqm'] = area_sqm
+            
+        except Exception as e:
+            if verbose:
                 print(f"  Warning: Network download failed: {str(e)}")
-                G = None
+            G = None
+        
+        if progress_callback:
+            progress_callback("Downloading points of interest", 0.4)
+        elif verbose:
+            print("Downloading points of interest...")
+        
+        # Get POIs using point-based approach (more stable)
+        try:
+            # Estimate radius from isochrone area  
+            estimated_radius = np.sqrt(area_sqm / np.pi)
             
-            progress.update_phase_progress(50, "Downloading points of interest...")
+            # Use point-based download instead of bounding box
+            pois = ox.features_from_point(
+                (latitude, longitude),
+                dist=estimated_radius,
+                tags={
+                    'amenity': True,
+                    'leisure': True,
+                    'shop': True,
+                    'tourism': True,
+                    'historic': True,
+                    'office': True,
+                    'public_transport': True,
+                    'healthcare': True,
+                    'education': True,
+                    'natural': True,
+                    'waterway': True
+                }
+            )
             
-            # Get POIs using point-based approach (more stable)
-            try:
-                # Estimate radius from isochrone area  
-                estimated_radius = np.sqrt(area_sqm / np.pi)
-                
-                # Use point-based download instead of bounding box
-                pois = ox.features_from_point(
-                    (latitude, longitude),
-                    dist=estimated_radius,
-                    tags={
-                        'amenity': True,
-                        'leisure': True,
-                        'shop': True,
-                        'tourism': True,
-                        'historic': True,
-                        'office': True,
-                        'public_transport': True,
-                        'healthcare': True,
-                        'education': True,
-                        'natural': True,
-                        'waterway': True
-                    }
-                )
-                
-                # Filter POIs to only include those within isochrone
-                if not pois.empty:
-                    # Filter to just points first
-                    point_pois = pois[pois.geometry.type == 'Point'].copy()
-                    # Then filter by isochrone boundary
-                    pois_within = point_pois[point_pois.geometry.within(isochrone_polygon)].copy()
-                else:
-                    pois_within = gpd.GeoDataFrame(columns=['amenity'], geometry=[])
-                    
-            except Exception as e:
-                print(f"  Warning: POI download failed: {str(e)}")
+            # Filter POIs to only include those within isochrone
+            if not pois.empty:
+                # Filter to just points first
+                point_pois = pois[pois.geometry.type == 'Point'].copy()
+                # Then filter by isochrone boundary
+                pois_within = point_pois[point_pois.geometry.within(isochrone_polygon)].copy()
+            else:
                 pois_within = gpd.GeoDataFrame(columns=['amenity'], geometry=[])
-            
-            progress.update_phase_progress(100, "Download complete")
+                
+        except Exception as e:
+            if verbose:
+                print(f"  Warning: POI download failed: {str(e)}")
+            pois_within = gpd.GeoDataFrame(columns=['amenity'], geometry=[])
         
         # Phase 2: Calculate Metrics (25% of total time)
-        with progress.phase('calculate', 'Calculating Isochrone Metrics'):
-            progress.update_phase_progress(50, "Computing accessibility metrics...")
-            
-            # Calculate metrics using existing functions
-            metrics = calculate_all_metrics(G, pois_within, area_sqm)
-            
-            progress.update_phase_progress(100, "Metrics calculation complete")
+        if progress_callback:
+            progress_callback("Computing accessibility metrics", 0.7)
+        elif verbose:
+            print("Computing accessibility metrics...")
+        
+        # Calculate metrics using existing functions
+        metrics = calculate_all_metrics(G, pois_within, area_sqm)
         
         # Phase 3: Format Results (5% of total time)
-        with progress.phase('format', 'Finalizing Isochrone Results'):
-            progress.update_phase_progress(50, "Formatting results...")
-            
-            # Add isochrone-specific information
-            result = {
-                "isochrone_info": {
-                    "mode": mode,
-                    "travel_time_minutes": travel_time_minutes,
-                    "speed_kmh": speed_kmh,
-                    "area_sqm": round_float(area_sqm, AREA_DECIMALS),
-                    "calculation_method": "network_based" if G is not None else "circular_approximation",
-                    "accessible_nodes": G.number_of_nodes() if G is not None else 0,
-                    "accessible_pois": len(pois_within)
-                },
-                **metrics
-            }
-            
-            progress.update_phase_progress(100, "Complete")
+        if progress_callback:
+            progress_callback("Finalizing results", 0.9)
+        elif verbose:
+            print("Finalizing results...")
         
-        progress.complete_extraction()
+        # Add isochrone-specific information
+        result = {
+            "isochrone_info": {
+                "mode": mode,
+                "travel_time_minutes": travel_time_minutes,
+                "speed_kmh": speed_kmh,
+                "area_sqm": round_float(area_sqm, AREA_DECIMALS),
+                "calculation_method": "network_based" if G is not None else "circular_approximation",
+                "accessible_nodes": G.number_of_nodes() if G is not None else 0,
+                "accessible_pois": len(pois_within)
+            },
+            **metrics
+        }
+        
+        if progress_callback:
+            progress_callback("Complete", 1.0)
+        elif verbose:
+            print("Isochrone analysis complete")
+        
         return result
         
     except Exception as e:
-        progress.error(f"Failed to extract isochrone features: {str(e)}")
+        if verbose:
+            print(f"Error: Failed to extract isochrone features: {str(e)}")
         raise GeoFeatureKitError(f"Failed to extract isochrone features: {str(e)}")
 
 

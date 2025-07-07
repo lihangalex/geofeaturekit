@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 
 from geofeaturekit.core.extractor import UrbanFeatureExtractor
 from geofeaturekit.exceptions import GeoFeatureKitError
-from geofeaturekit import features_from_location
+from geofeaturekit import extract_features
 
 def test_extractor_initialization():
     """Test basic initialization of UrbanFeatureExtractor."""
@@ -45,7 +45,7 @@ def test_single_location(mock_network, mock_poi, mock_calculate):
     }
     
     extractor = UrbanFeatureExtractor()
-    features = extractor.features_from_location(40.7128, -74.0060)  # NYC
+    features = extractor.extract_features(40.7128, -74.0060)  # NYC
     
     assert isinstance(features, dict)
     assert 'network_metrics' in features
@@ -79,10 +79,10 @@ def test_batch_locations(mock_network, mock_poi, mock_calculate):
     
     extractor = UrbanFeatureExtractor()
     locations = [
-        (40.7128, -74.0060),  # NYC
-        (51.5074, -0.1278),   # London
+        (40.7128, -74.0060, 500),  # NYC - now includes radius
+        (51.5074, -0.1278, 500),   # London - now includes radius
     ]
-    features = extractor.features_from_location_batch(locations)
+    features = extractor.extract_features_batch(locations)
     
     assert isinstance(features, list)
     assert len(features) == len(locations)
@@ -95,8 +95,8 @@ def test_batch_locations(mock_network, mock_poi, mock_calculate):
 @patch('geofeaturekit.core.extractor.calculate_all_metrics')
 @patch('geofeaturekit.core.extractor.download_pois')
 @patch('geofeaturekit.core.extractor.download_network')
-def test_features_from_location_structure(mock_network, mock_poi, mock_calculate):
-    """Test detailed output structure from features_from_location."""
+def test_extract_features_structure(mock_network, mock_poi, mock_calculate):
+    """Test detailed output structure from extract_features."""
     # Setup mocks with complete structure
     mock_network.return_value = MagicMock()
     mock_poi.return_value = []
@@ -124,7 +124,7 @@ def test_features_from_location_structure(mock_network, mock_poi, mock_calculate
     }
     
     extractor = UrbanFeatureExtractor()
-    features = extractor.features_from_location(40.7128, -74.0060)  # NYC
+    features = extractor.extract_features(40.7128, -74.0060)  # NYC
     
     # Check main sections
     assert 'network_metrics' in features
@@ -152,10 +152,10 @@ def test_invalid_coordinates():
     
     # Test coordinates out of range
     with pytest.raises(ValueError):
-        extractor.features_from_location(91.0, 0.0)  # Invalid latitude
+        extractor.extract_features(91.0, 0.0)  # Invalid latitude
     
     with pytest.raises(ValueError):
-        extractor.features_from_location(0.0, 181.0)  # Invalid longitude
+        extractor.extract_features(0.0, 181.0)  # Invalid longitude
 
 def test_network_download_failure():
     """Test handling of network download failures."""
@@ -164,4 +164,36 @@ def test_network_download_failure():
         
         extractor = UrbanFeatureExtractor()
         with pytest.raises(GeoFeatureKitError):
-            extractor.features_from_location(40.7128, -74.0060) 
+            extractor.extract_features(40.7128, -74.0060) 
+
+def test_main_extract_features_function():
+    """Test the main extract_features function from the module."""
+    # Test the main API function works
+    with patch('geofeaturekit.core.extractor.calculate_all_metrics') as mock_calc, \
+         patch('geofeaturekit.core.extractor.download_pois') as mock_poi, \
+         patch('geofeaturekit.core.extractor.download_network') as mock_net:
+        
+        mock_net.return_value = MagicMock()
+        mock_poi.return_value = []
+        mock_calc.return_value = {
+            'network_metrics': {'basic_metrics': {'total_street_length_meters': 1000}},
+            'poi_metrics': {'absolute_counts': {'total_points_of_interest': 100}},
+            'pedestrian_network': {},
+            'land_use_metrics': {},
+            'data_quality_metrics': {}
+        }
+        
+        # Test the main API function
+        features = extract_features(40.7580, -73.9855, 500)
+        
+        assert isinstance(features, dict)
+        assert 'network_metrics' in features
+        assert 'poi_metrics' in features
+
+def test_verbose_parameter():
+    """Test the verbose parameter works correctly."""
+    extractor = UrbanFeatureExtractor(verbose=True)
+    assert extractor.verbose is True
+    
+    extractor = UrbanFeatureExtractor(verbose=False)
+    assert extractor.verbose is False 
