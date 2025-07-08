@@ -1,6 +1,5 @@
 # Reporting and Fixing Security Issues
 
-Please do not open GitHub issues or pull requests - this makes the problem immediately visible to everyone, including malicious actors.
 
 For security issues in GeoFeatureKit, please reach out directly at **lihangalex@pm.me** as opening issues or pull requests may expose vulnerabilities to potential attackers.
 
@@ -8,20 +7,11 @@ For security issues in GeoFeatureKit, please reach out directly at **lihangalex@
 
 When reporting a security issue, please include:
 
-- A clear description of the vulnerability
+- A description of the vulnerability
 - Steps to reproduce the issue
 - Potential impact assessment
 - Any suggested fixes or mitigations
 
-## Supported Versions
-
-We provide security updates for:
-
-| Version | Supported |
-|---------|-----------|
-| 0.6.x   | ✅ Yes    |
-| 0.5.x   | ❌ No     |
-| < 0.5   | ❌ No     |
 
 ## Security Best Practices
 
