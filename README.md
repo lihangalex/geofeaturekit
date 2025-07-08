@@ -2,104 +2,92 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![PyPI version](https://img.shields.io/pypi/v/geofeaturekit.svg)](https://pypi.org/project/geofeaturekit/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/geofeaturekit.svg)](https://pypi.org/project/geofeaturekit/)
-[![Tests](https://github.com/lihangalex/geofeaturekit/workflows/Test/badge.svg)](https://github.com/lihangalex/geofeaturekit/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Extract comprehensive geospatial features from coordinates for ML, urban planning, and location intelligence.**
+**Turn any location into rich urban data. Get POIs, street networks, and accessibility metrics from just coordinates.**
 
 ## 🚀 Quick Start
 
-### Installation
 ```bash
 pip install geofeaturekit
 ```
 
-### Basic Usage
+### Basic Analysis
+
 ```python
 from geofeaturekit import extract_features
 
-# Extract features from Times Square (quiet by default)
-features = extract_features(40.7580, -73.9855, 500)  # lat, lon, radius_meters
+# Analyze any location (lat, lon, radius_meters)
+features = extract_features(40.7580, -73.9855, 500)
 
-print(f"POIs found: {features['poi_metrics']['absolute_counts']['total_points_of_interest']}")
-print(f"Street length: {features['network_metrics']['basic_metrics']['total_street_length_meters']:.0f}m")
+# Access the structured data
+print(features['poi_metrics']['absolute_counts']['total_points_of_interest'])  # 1076
+print(features['poi_metrics']['density_metrics']['points_of_interest_per_sqkm'])  # 1370.0
+print(features['network_metrics']['basic_metrics']['total_intersections'])  # 731
 ```
 
-### Verbose Analysis
-```python
-# Enable detailed progress output
-features = extract_features(40.7580, -73.9855, 500, verbose=True)
+**Sample Output Structure:**
+```json
+{
+  "poi_metrics": {
+    "absolute_counts": {
+      "total_points_of_interest": 1076,
+      "counts_by_category": {
+        "total_dining_places": {"count": 400, "percentage": 37.17},
+        "total_retail_places": {"count": 126, "percentage": 11.71},
+        "total_public_transit_places": {"count": 96, "percentage": 8.92},
+        "total_healthcare_places": {"count": 13, "percentage": 1.21}
+      }
+    },
+    "density_metrics": {
+      "points_of_interest_per_sqkm": 1370.0
+    },
+    "distribution_metrics": {
+      "diversity_metrics": {"shannon_diversity_index": 2.147},
+      "spatial_distribution": {"pattern_interpretation": "random"}
+    }
+  },
+  "network_metrics": {
+    "basic_metrics": {
+      "total_intersections": 731,
+      "total_street_length_meters": 80044.7
+    },
+    "connectivity_metrics": {
+      "average_connections_per_node": {
+        "value": 5.954,
+        "confidence_interval_95": {"lower": 5.837, "upper": 6.071}
+      }
+    }
+  }
+}
 ```
 
-### Multi-modal Accessibility
+### Multi-Modal Accessibility
+
 ```python
 from geofeaturekit import extract_multimodal_features
 
-# Compare walking vs biking accessibility
+# Compare walking vs biking reach
 features = extract_multimodal_features(
     40.7580, -73.9855,
     walk_time_minutes=10,
-    bike_time_minutes=5
+    bike_time_minutes=10
 )
 
 walk_pois = features['walk_features']['poi_metrics']['absolute_counts']['total_points_of_interest']
 bike_pois = features['bike_features']['poi_metrics']['absolute_counts']['total_points_of_interest']
 
-print(f"10min walk: {walk_pois} POIs accessible")
-print(f"5min bike: {bike_pois} POIs accessible")
+print(f"🚶 10-min walk: {walk_pois} POIs reachable")     # 2104 POIs
+print(f"🚴 10-min bike: {bike_pois} POIs reachable")     # 12200 POIs  
+print(f"🎯 Bike advantage: {bike_pois/walk_pois:.1f}x more places")  # 5.8x
 ```
 
-## 🎯 What You Get
-
-**Input:** Latitude, longitude, and radius/time  
-**Output:** Comprehensive geospatial intelligence:
-
-- **🏙️ Urban Features**: 23 comprehensive POI categories with density and diversity metrics
-- **🚶 Multi-modal Accessibility**: Walking, biking, and driving isochrone analysis
-- **🛣️ Street Network Analysis**: Connectivity, density, and pattern metrics
-- **📊 Spatial Intelligence**: Diversity indices, clustering patterns, and distribution analysis
-
-## 📊 Key Features
-
-### 🏪 **23 POI Categories**
-Complete coverage of urban amenities including dining, retail, healthcare, education, transportation, public transit, green infrastructure, water features, financial services, accommodation, community spaces, and more.
-
-### 🚶 **Multi-modal Accessibility**
-- **Walking**: 5.0 km/h (pedestrian accessibility)
-- **Biking**: 15.0 km/h (cycling infrastructure)
-- **Driving**: 40.0 km/h (car accessibility)
-- **Custom speeds**: Configurable for different scenarios
-
-### 🛣️ **Street Network Intelligence**
-- **Connectivity**: Average connections per intersection
-- **Density**: Street length per square kilometer
-- **Pattern Analysis**: Bearing entropy and grid patterns
-- **Walkability**: Pedestrian-friendly network metrics
-
-### 📈 **Spatial Analysis**
-- **Diversity Metrics**: Shannon and Simpson indices
-- **Clustering Patterns**: Spatial distribution analysis
-- **Density Mapping**: POI concentration by category
-- **Accessibility Comparison**: Multi-modal coverage analysis
-
-## 🌟 Clean API Features
-
-| **Feature** | **Benefit** |
-|-------------|-------------|
-| ✅ **Quiet by Default** | No unexpected console output |
-| ✅ **Standard Parameters** | `verbose` instead of `show_progress` |
-| ✅ **Progress Callbacks** | Custom progress tracking |
-| ✅ **Type Safety** | Full type hints and validation |
-| ✅ **Error Handling** | Graceful failure with helpful messages |
-
-## 🔧 Advanced Usage
-
 ### Batch Processing
+
 ```python
 from geofeaturekit import extract_features_batch
 
-# Process multiple locations efficiently
+# Analyze multiple locations at once
 locations = [
     (40.7580, -73.9855, 500),  # Times Square
     (40.7829, -73.9654, 500),  # Central Park
@@ -107,176 +95,80 @@ locations = [
 ]
 
 results = extract_features_batch(locations)
+
+for i, result in enumerate(results):
+    pois = result['poi_metrics']['absolute_counts']['total_points_of_interest']
+    restaurants = result['poi_metrics']['absolute_counts']['counts_by_category']['total_dining_places']['count']
+    print(f"Location {i+1}: {pois} POIs, {restaurants} restaurants")
+    # Location 1: 1076 POIs, 400 restaurants
+    # Location 2: 185 POIs, 12 restaurants  
+    # Location 3: 1131 POIs, 323 restaurants
 ```
 
-### Custom Progress Tracking
+### Progress Tracking
+
 ```python
 def progress_handler(message, progress):
     print(f"[{progress:.0%}] {message}")
 
+# Add progress callback for long-running analysis
 features = extract_features(
-    40.7580, -73.9855, 500,
+    40.7580, -73.9855, 1000,
+    verbose=True,
     progress_callback=progress_handler
 )
 ```
 
-### Combined Analysis
-```python
-# Compare radius-based vs time-based accessibility
-features = extract_multimodal_features(
-    40.7580, -73.9855,
-    radius_meters=400,        # 400m radius
-    walk_time_minutes=5       # 5min walk
-)
+## 📊 What You Get
 
-radius_pois = features['radius_features']['poi_metrics']['absolute_counts']['total_points_of_interest']
-walk_pois = features['walk_features']['poi_metrics']['absolute_counts']['total_points_of_interest']
+**POI Analysis:**
+- `poi_metrics['absolute_counts']` - Raw counts by category (23 categories)
+- `poi_metrics['density_metrics']` - POIs per km², density by category
+- `poi_metrics['distribution_metrics']` - Diversity indices, spatial patterns
 
-print(f"Radius (400m): {radius_pois} POIs")
-print(f"Walk (5min): {walk_pois} POIs")
-```
+**Street Network:**
+- `network_metrics['basic_metrics']` - Nodes, intersections, street length
+- `network_metrics['connectivity_metrics']` - Connections per node, ratios
+- `network_metrics['street_pattern_metrics']` - Bearing entropy, grid patterns
 
-## 📝 Example Output
+**Multi-Modal Features:**
+- `walk_features`, `bike_features`, `drive_features` - Same structure as above
+- `radius_features` - Circular analysis results
 
-**Times Square Analysis (500m radius):**
-```python
-{
-  "network_metrics": {
-    "basic_metrics": {
-      "total_street_length_meters": 80044.7,
-      "total_intersections": 731,
-      "total_nodes": 777
-    },
-    "connectivity_metrics": {
-      "average_connections_per_node": 5.954,
-      "streets_to_nodes_ratio": 1.488
-    },
-    "street_pattern_metrics": {
-      "bearing_entropy": 2.056,
-      "mean_segment_length_meters": 34.6
-    }
-  },
-  "poi_metrics": {
-    "absolute_counts": {
-      "total_points_of_interest": 1076,
-      "counts_by_category": {
-        "total_dining_places": {"count": 400, "percentage": 37.17},
-        "total_transportation_places": {"count": 190, "percentage": 17.66},
-        "total_retail_places": {"count": 126, "percentage": 11.71},
-        "total_public_transit_places": {"count": 96, "percentage": 8.92}
-      }
-    },
-    "diversity_metrics": {
-      "shannon_diversity_index": 2.11,
-      "simpson_diversity_index": 0.81
-    },
-    "spatial_distribution": {
-      "mean_nearest_neighbor_distance_meters": 13.2,
-      "pattern_interpretation": "random"
-    }
-  }
-}
-```
+## 🎯 Use Cases
 
-## 🔬 Use Cases
+- **Real estate analysis**: Compare neighborhood walkability
+- **Urban planning**: Assess transit accessibility  
+- **Machine learning**: Generate location features for models
+- **Market research**: Analyze competitor density
 
-### Machine Learning Feature Engineering
-```python
-# Generate features for price prediction
-import pandas as pd
+## 🗺️ Roadmap
 
-properties = pd.read_csv('real_estate.csv')
-features_list = []
+- **Temporal pattern mining** - Discover how neighborhoods change across time scales  
+- **Gentrification prediction** - ML models to forecast neighborhood change  
+- **Causal inference engine** - Identify what actually drives urban outcomes  
+- **Anomaly detection** - Identify unusual urban patterns and opportunities
 
-for _, row in properties.iterrows():
-    location_features = extract_features(row['lat'], row['lon'], 1000)
-    
-    features_list.append({
-        'poi_density': location_features['poi_metrics']['density_metrics']['points_of_interest_per_sqkm'],
-                 'street_connectivity': location_features['network_metrics']['connectivity_metrics']['average_connections_per_node']['value'],
-        'diversity_index': location_features['poi_metrics']['distribution_metrics']['diversity_metrics']['shannon_diversity_index']
-    })
-
-# Add to ML pipeline
-features_df = pd.DataFrame(features_list)
-```
-
-### Urban Planning Analysis
-```python
-# Walkability assessment
-features = extract_features(40.7580, -73.9855, 800, verbose=True)
-
-walkability_score = (
-    features['poi_metrics']['density_metrics']['points_of_interest_per_sqkm'] * 0.4 +
-    features['network_metrics']['connectivity_metrics']['average_connections_per_node']['value'] * 100 * 0.6
-)
-
-print(f"Walkability score: {walkability_score:.1f}")
-```
-
-### Accessibility Research
-```python
-# Multi-modal accessibility comparison
-features = extract_multimodal_features(
-    40.7580, -73.9855,
-    walk_time_minutes=15,
-    bike_time_minutes=10,
-    drive_time_minutes=5
-)
-
-for mode in ['walk', 'bike', 'drive']:
-    key = f"{mode}_features"
-    if key in features:
-        pois = features[key]['poi_metrics']['absolute_counts']['total_points_of_interest']
-        time_min = features[key]['isochrone_info']['travel_time_minutes']
-        print(f"{mode.title()} ({time_min}min): {pois} POIs accessible")
-```
-
-## 🌍 Data Quality
-
-- **International System of Units (SI)**: All measurements in meters, square kilometers
-- **Confidence Intervals**: Statistical uncertainty quantification
-- **Reproducible Results**: Deterministic with caching
-- **Comprehensive Testing**: 57 test cases with property-based validation
-
-## 🛠️ Installation & Requirements
-
-```bash
-pip install geofeaturekit
-```
-
-**Requirements:**
-- Python 3.9+
-- Automatic dependency management
-- Works on Windows, macOS, and Linux
+*For feature requests, please contact: lihangalex@pm.me*
 
 ## 📚 API Reference
 
-### Core Functions
+```python
+# Basic analysis
+extract_features(lat, lon, radius_meters, verbose=False, cache=True, progress_callback=None)
 
-#### `extract_features(latitude, longitude, radius_meters, *, verbose=False, cache=True, progress_callback=None)`
-Extract comprehensive urban features within a circular radius.
+# Multi-modal accessibility  
+extract_multimodal_features(lat, lon, walk_time_minutes=None, bike_time_minutes=None, drive_time_minutes=None, verbose=False, cache=True, progress_callback=None)
 
-#### `extract_multimodal_features(latitude, longitude, *, radius_meters=None, walk_time_minutes=None, bike_time_minutes=None, drive_time_minutes=None, verbose=False, cache=True, progress_callback=None)`
-Multi-modal accessibility analysis with isochrone support.
-
-#### `extract_features_batch(locations, *, verbose=False, cache=True, progress_callback=None)`
-Process multiple locations efficiently.
-
-### Parameters
-
-- **`latitude`**: Location latitude (-90 to 90)
-- **`longitude`**: Location longitude (-180 to 180)
-- **`radius_meters`**: Analysis radius in meters
-- **`verbose`**: Enable detailed progress output (default: False)
-- **`cache`**: Use caching for faster repeated analysis (default: True)
-- **`progress_callback`**: Custom progress tracking function
+# Batch processing
+extract_features_batch(locations, verbose=False, cache=True, progress_callback=None)
+```
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions welcome! See [Contributing Guide](CONTRIBUTING.md).
 
-## 📄 License
+## ⚖️ License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
@@ -286,4 +178,4 @@ Built with [OSMnx](https://github.com/gboeing/osmnx), [NetworkX](https://github.
 
 ---
 
-**Ready to analyze any location? Start with `pip install geofeaturekit` and explore geospatial patterns! 🌍** 
+**Ready to analyze any location? Start with `pip install geofeaturekit`** 🌍 

@@ -10,10 +10,10 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="geofeaturekit",
-    version="0.6.0",
+    version="0.6.1",
     description="GeoFeatureKit transforms simple coordinates into powerful geospatial insights. Analyze street networks, POI diversity, and spatial patterns with professional progress tracking – no paid APIs or complex setup required.",
     author="Alexander Li",
-    author_email="lihangalex@gmail.com",
+    author_email="lihangalex@pm.me",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/lihangalex/geofeaturekit",
@@ -29,7 +29,7 @@ setup(
     python_requires=">=3.9",
     install_requires=requirements,
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
