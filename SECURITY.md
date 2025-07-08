@@ -1,8 +1,6 @@
-# Security Policy
+# Reporting and Fixing Security Issues
 
-## Reporting Security Issues
-
-**Please do not open GitHub issues or pull requests for security vulnerabilities** - this makes the problem immediately visible to everyone, including malicious actors.
+Please do not open GitHub issues or pull requests - this makes the problem immediately visible to everyone, including malicious actors.
 
 For security issues in GeoFeatureKit, please reach out directly at **lihangalex@pm.me** as opening issues or pull requests may expose vulnerabilities to potential attackers.
 
