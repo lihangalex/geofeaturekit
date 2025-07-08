@@ -50,4 +50,19 @@ This project uses several open source packages. The following acknowledgments ar
 ## TQDM
 - License: MIT/MPL-2.0
 - Copyright (c) 2013-2024 Casper da Costa-Luis and contributors
-- https://github.com/tqdm/tqdm 
+- https://github.com/tqdm/tqdm
+
+## SciPy
+- License: BSD-3-Clause
+- Copyright (c) 2001-2024 SciPy Developers
+- https://github.com/scipy/scipy
+
+## GeoPandas
+- License: BSD-3-Clause
+- Copyright (c) 2013-2024, GeoPandas Development Team
+- https://github.com/geopandas/geopandas
+
+## Shapely
+- License: BSD-3-Clause
+- Copyright (c) 2007-2024, Sean Gillies and contributors
+- https://github.com/shapely/shapely 

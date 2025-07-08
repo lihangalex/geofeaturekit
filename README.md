@@ -176,6 +176,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 Built with [OSMnx](https://github.com/gboeing/osmnx), [NetworkX](https://github.com/networkx/networkx), and [GeoPandas](https://github.com/geopandas/geopandas). Data © [OpenStreetMap](https://www.openstreetmap.org/) contributors.
 
+For complete license information and attributions, see [NOTICE.md](NOTICE.md).
+
 ---
 
-**Ready to analyze any location? Start with `pip install geofeaturekit`** 🌍 
+**Ready to analyze any location? Start with `
