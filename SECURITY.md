@@ -13,12 +13,6 @@ When reporting a security issue, please include:
 - Potential impact assessment
 - Any suggested fixes or mitigations
 
-## Response Timeline
-
-- **Acknowledgment**: Within 48 hours
-- **Initial assessment**: Within 1 week
-- **Resolution timeline**: Communicated after assessment
-
 ## Supported Versions
 
 We provide security updates for:

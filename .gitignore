@@ -62,6 +62,52 @@ coverage.xml
 docs/_build/
 docs/api/
 
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# MyPy type checker
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# PyPI publishing
+.twine/
+dist/
+build/
+
+# Geospatial data files (temporary/cache)
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.geojson
+*.kml
+*.kmz
+*.gpx
+
+# OSM data cache
+osm_cache/
+osmnx_cache/
+
+# Model files
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Profile output
+*.prof
+*.profile
+
 # Keep these files
 !.github/
 !requirements*.txt
